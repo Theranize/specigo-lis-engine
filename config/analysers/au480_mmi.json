@@ -19,9 +19,9 @@
   "manufacture_country": "Japan",
 
   "connection": {
-    "_comment": "CONFIRMED: RS-232 on COM2 is primary. LAN available but not used for integration.",
+    "_comment": "CONFIRMED: USB-SERIAL CH340 adapter assigned COM4 (verified via Device Manager April 2026).",
     "type": "serial",
-    "port": "COM2",
+    "port": "COM4",
     "baudRate": 9600,
     "dataBits": 8,
     "stopBits": 1,

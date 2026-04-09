@@ -98,12 +98,17 @@ class IntegrationEngine {
     this._serialManager  = null;
     this._framer         = null;
     this._parser         = null;
-    this._mapper         = null;
-    this._writer         = null;
+    this._mapper         = null;   // created after DB connects
+    this._writer         = null;   // created after DB connects
 
     // Engine lifecycle state
     this._running        = false;
     this._startedAt      = null;
+
+    // Database connection state (independent of serial port)
+    this._dbReady        = false;
+    this._dbRetrying     = false;
+    this._dbRetryTimer   = null;
 
     // Counters for the dashboard status endpoint
     this._stats = {
@@ -139,27 +144,27 @@ class IntegrationEngine {
     // Step 1: Load and validate analyser config
     this._config = this._loadConfig(this._configFilePath);
 
-    // Step 2: Create MySQL connection pool
-    this._dbPool = await this._createDbPool();
-
-    // Step 3: Instantiate and wire all modules
+    // Step 2: Instantiate serial modules (no DB needed)
     this._initialiseModules();
 
-    // Step 4: Register graceful shutdown handlers
+    // Step 3: Register graceful shutdown handlers
     this._registerShutdownHandlers();
 
-    // Step 5: Open the serial port
-    // SerialPortManager handles reconnection automatically from this point on.
+    // Step 4: Open the serial port immediately - independent of DB
     await this._serialManager.connect();
 
     this._running   = true;
     this._startedAt = new Date();
 
-    logger.info('IntegrationEngine running', {
+    logger.info('IntegrationEngine running - serial port open', {
       analyser: this._config.model,
       site    : this._config.site,
       port    : this._config.connection.port
     });
+
+    // Step 5: Connect to database in background - does NOT block the serial port.
+    // Results received before DB is ready are logged and skipped gracefully.
+    this._connectDbWithRetry();
   }
 
   /**
@@ -173,6 +178,13 @@ class IntegrationEngine {
     }
 
     logger.info('IntegrationEngine stopping...');
+
+    // Stop the background DB retry loop before anything else
+    this._dbRetrying = false;
+    if (this._dbRetryTimer) {
+      clearTimeout(this._dbRetryTimer);
+      this._dbRetryTimer = null;
+    }
 
     // Disconnect serial port first so no more data arrives while we shut down
     if (this._serialManager) {
@@ -188,6 +200,7 @@ class IntegrationEngine {
     if (this._dbPool) {
       await this._dbPool.end();
       this._dbPool = null;
+      this._dbReady = false;
       logger.info('Database pool closed');
     }
 
@@ -219,6 +232,8 @@ class IntegrationEngine {
       baudRate      : serialStatus.baudRate      || null,
       isReconnecting: serialStatus.isReconnecting || false,
       lastByteAt    : serialStatus.stats?.lastByteAt || null,
+      dbReady       : this._dbReady,
+      dbRetrying    : this._dbRetrying,
       stats         : {
         ...this._stats,
         serial : serialStatus.stats  || {},
@@ -399,21 +414,9 @@ class IntegrationEngine {
       labUid        : cfg.lab_uid
     });
 
-    // --- 4. ParameterMapper ---
-    this._mapper = new ParameterMapper({
-      dbPool      : this._dbPool,
-      analyzerCode: 'AU480',
-      analyzerUid : cfg.analyzer_uid,
-      labUid      : cfg.lab_uid
-    });
-
-    // --- 5. ResultWriter ---
-    this._writer = new ResultWriter({
-      dbPool      : this._dbPool,
-      analyzerUid : cfg.analyzer_uid,
-      analyzerCode: 'AU480',
-      labUid      : cfg.lab_uid
-    });
+    // ParameterMapper and ResultWriter are created later in _initialiseDbModules()
+    // once the database connection is established. This allows the serial port
+    // to start immediately without waiting for a DB connection.
 
     // -----------------------------------------------------------------------
     // Event wiring
@@ -460,6 +463,10 @@ class IntegrationEngine {
     this._parser.on('sessionStart', async () => {
       this._stats.sessionsStarted++;
       logger.info('Analyser session started (DB received)');
+      if (!this._dbReady) {
+        logger.warn('Session start received but database not ready - skipping session log');
+        return;
+      }
       // Clear mapper cache at session start so barcode cache from previous
       // runs (e.g. previous day) does not serve stale data
       this._mapper.clearCache();
@@ -472,6 +479,10 @@ class IntegrationEngine {
     this._parser.on('sessionEnd', async () => {
       this._stats.sessionsEnded++;
       logger.info('Analyser session ended (DE received)');
+      if (!this._dbReady) {
+        logger.warn('Session end received but database not ready - skipping session log');
+        return;
+      }
       await this._writer.logSessionEvent('DE', cfg.lab_uid).catch((err) => {
         logger.error('Failed to log session end', { error: err.message });
       });
@@ -484,6 +495,15 @@ class IntegrationEngine {
     this._parser.on('result', async (parsedResult) => {
       this._stats.resultsReceived++;
       this._stats.lastResultAt = new Date();
+
+      if (!this._dbReady) {
+        this._stats.resultsSkipped++;
+        logger.warn('Result received but database not ready - result skipped', {
+          sampleId    : parsedResult.sampleId,
+          onlineTestNo: parsedResult.onlineTestNo
+        });
+        return;
+      }
 
       try {
         // Map barcode and parameter
@@ -524,7 +544,99 @@ class IntegrationEngine {
       logger.debug('Message filtered', { code, reason });
     });
 
-    logger.info('All modules instantiated and events wired');
+    logger.info('All serial modules instantiated and events wired - waiting for DB');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - database modules (mapper + writer)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Creates ParameterMapper and ResultWriter using an established DB pool.
+   * Called by _connectDbWithRetry() once the connection is verified.
+   *
+   * @param {mysql2.Pool} pool - Verified, live connection pool.
+   */
+  _initialiseDbModules(pool) {
+    const cfg = this._config;
+
+    this._mapper = new ParameterMapper({
+      dbPool      : pool,
+      analyzerCode: 'AU480',
+      analyzerUid : cfg.analyzer_uid,
+      labUid      : cfg.lab_uid
+    });
+
+    this._writer = new ResultWriter({
+      dbPool      : pool,
+      analyzerUid : cfg.analyzer_uid,
+      analyzerCode: 'AU480',
+      labUid      : cfg.lab_uid
+    });
+
+    logger.info('ParameterMapper and ResultWriter initialised - engine fully operational');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - background database connection with retry
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Attempts to connect to the database, retrying indefinitely with exponential
+   * back-off until either a connection succeeds or the engine is stopped.
+   *
+   * This runs as a fire-and-forget background task launched from start() so
+   * the serial port is never blocked by a DB outage.
+   *
+   * Back-off schedule: 5s → 10s → 20s → 40s → 60s (capped) → 60s → ...
+   */
+  async _connectDbWithRetry() {
+    const INITIAL_DELAY_MS = 5000;
+    const MAX_DELAY_MS     = 60000;
+    let   delayMs          = INITIAL_DELAY_MS;
+
+    this._dbRetrying = true;
+    logger.info('Background DB connection started');
+
+    while (this._running && !this._dbReady) {
+      try {
+        logger.info('Attempting database connection...');
+        const pool = await this._createDbPool();
+
+        // Pool is verified - wire up the DB-dependent modules
+        this._dbPool  = pool;
+        this._initialiseDbModules(pool);
+
+        this._dbReady    = true;
+        this._dbRetrying = false;
+
+        logger.info('Database connected - engine fully operational');
+        break;
+
+      } catch (err) {
+        if (!this._running) break;   // engine was stopped while we were trying
+
+        logger.warn(
+          `Database connection failed, retrying in ${delayMs / 1000}s`,
+          { error: err.message }
+        );
+
+        // Wait with a cancellable timer so stop() can interrupt the sleep
+        await new Promise((resolve) => {
+          this._dbRetryTimer = setTimeout(resolve, delayMs);
+        });
+        this._dbRetryTimer = null;
+
+        // Exponential back-off, capped at MAX_DELAY_MS
+        delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
+      }
+    }
+
+    if (!this._dbReady) {
+      // Loop exited because engine was stopped
+      this._dbRetrying = false;
+      logger.info('DB retry loop cancelled (engine stopped)');
+    }
   }
 
   // ---------------------------------------------------------------------------
