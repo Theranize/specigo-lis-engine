@@ -1,0 +1,122 @@
+{
+  "_comment": "SpeciGo LIS Integration Engine - Analyser Instance Config",
+  "_doc_version": "v1.5 - April 2026",
+  "_site": "MMI Diagnostics, Raipur, Chhattisgarh",
+  "_last_updated": "2026-04-08",
+  "_confirmed_from": "AU480 screen photos taken at MMI on 08 April 2026",
+
+  "analyser_id": "AU480",
+  "lab_uid": "[MMI_LAB_UID]",
+  "analyzer_uid": "[FROM_lab_analyzers_TABLE]",
+  "manufacturer": "Beckman Coulter",
+  "model": "AU480",
+  "model_family": "AU Series",
+  "category": "Clinical Chemistry Analyser",
+  "site": "MMI Diagnostics, Raipur",
+  "serial_number": "2023070728",
+  "ref_number": "B96693",
+  "manufacture_date": "2023-07-06",
+  "manufacture_country": "Japan",
+
+  "connection": {
+    "_comment": "CONFIRMED: RS-232 on COM2 is primary. LAN available but not used for integration.",
+    "type": "serial",
+    "port": "COM2",
+    "baudRate": 9600,
+    "dataBits": 8,
+    "stopBits": 1,
+    "parity": "none",
+    "flowControl": "none"
+  },
+
+  "cable": {
+    "_comment": "CONFIRMED: Straight-through RS-232 cable at MMI.",
+    "type": "straight-through",
+    "wiring": "TxD(3)->RxD(2), RxD(2)->TxD(3), GND(5)->GND(5)"
+  },
+
+  "protocol": {
+    "_comment": "All values confirmed from MMI AU480 Protocol tab screen photo.",
+    "standard": "Beckman Coulter proprietary (ASTM-based, NOT standard ASTM E1394)",
+    "class": "B",
+    "startCode": "0x02",
+    "endCode": "0x03",
+    "ackByte": "0x06",
+    "nakByte": "0x15",
+    "bccCheck": false,
+    "etbControl": false,
+    "textLength": 512,
+    "retryCount": 3,
+    "triReceiveError": "Continue",
+    "resultsTransferError": "Continue"
+  },
+
+  "format": {
+    "_comment": "All values confirmed from MMI AU480 Format Config tab screen photo.",
+    "rackNoCupPositionEnabled": true,
+    "typeFieldEnabled": true,
+    "dilutionInfoEnabled": false,
+    "reagentInfoEnabled": false,
+    "r1r2UseEnabled": false,
+    "zeroSuppressEnabled": true,
+    "rackNoDigits": 4,
+    "onlineTestNoDigits": 3,
+    "resultDigits": 6,
+    "dataMarkTypes": 2,
+    "calControlNoDigits": 3
+  },
+
+  "sample_id": {
+    "_comment": "CONFIRMED: SpeciGo prints barcode_uid directly on tube label. Always 13 alphanumeric chars.",
+    "mode": "Barcode",
+    "barcodeType": "MULTI CODE",
+    "checkMode": "No",
+    "length": 13,
+    "example": "69D5DCF585189"
+  },
+
+  "message_filters": {
+    "_comment": "CONFIRMED: Patient results only for Phase 1. QC/Calibration enabled in future via this flag.",
+    "patient_results": true,
+    "stat_results": true,
+    "qc_results": false,
+    "calibration_results": false,
+    "reagent_blank": false
+  },
+
+  "parameter_map": {
+    "_comment": "Online Test No -> LIMS parameter mapping. lims_parameter_uid populated at go-live via admin UI (Open Item 4).",
+    "_note": "Tests 001-008 and 019,032,034,096 are internal/wavelength references - not clinical parameters. Not mapped.",
+
+    "009": { "code": "ALB",  "lims_name": "Albumin",            "unit": "g/dL",   "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "010": { "code": "ALP",  "lims_name": "ALP",                "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "011": { "code": "ALT",  "lims_name": "ALT (SGPT)",         "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "012": { "code": "AMY",  "lims_name": "Amylase",            "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "013": { "code": "AST",  "lims_name": "AST (SGOT)",         "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "014": { "code": "CAL",  "lims_name": "Calcium",            "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "015": { "code": "CHOL", "lims_name": "Total Cholesterol",  "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "016": { "code": "CKN",  "lims_name": "CK-NAC",             "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "017": { "code": "CRE",  "lims_name": "Creatinine",         "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "018": { "code": "DBB",  "lims_name": "Direct Bilirubin",   "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "020": { "code": "GGT",  "lims_name": "GGT",                "unit": "U/L",    "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "021": { "code": "GLU",  "lims_name": "Glucose",            "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "022": { "code": "HDL",  "lims_name": "HDL Cholesterol",    "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "023": { "code": "PHO",  "lims_name": "Phosphorus",         "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "024": { "code": "FE",   "lims_name": "Iron",               "unit": "ug/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "025": { "code": "MG",   "lims_name": "Magnesium",          "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "026": { "code": "TBB",  "lims_name": "Total Bilirubin",    "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "028": { "code": "TP",   "lims_name": "Total Protein",      "unit": "g/dL",   "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "029": { "code": "TRG",  "lims_name": "Triglycerides",      "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "030": { "code": "UREA", "lims_name": "Urea",               "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "031": { "code": "UA",   "lims_name": "Uric Acid",          "unit": "mg/dL",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "033": { "code": "GLB",  "lims_name": "Globulin",           "unit": "g/dL",   "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "097": { "code": "NA",   "lims_name": "Sodium",             "unit": "mEq/L",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "098": { "code": "K",    "lims_name": "Potassium",          "unit": "mEq/L",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" },
+    "099": { "code": "CL",   "lims_name": "Chloride",           "unit": "mEq/L",  "lims_parameter_uid": "[SET_AT_GO_LIVE]", "lims_test_uid": "[SET_AT_GO_LIVE]" }
+  },
+
+  "open_items": {
+    "_comment": "All 7 open items resolved per Section 7 of foundation document v1.5.",
+    "item_4_lims_parameter_uid": "DEFERRED TO GO-LIVE. Umesh populates lims_parameter_uid values above via the admin UI parameter mapping screen at site visit. The [SET_AT_GO_LIVE] placeholders above must be replaced with real UIDs from the SpeciGo LIMS test master before the engine goes live."
+  }
+}
