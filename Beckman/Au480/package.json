@@ -1,0 +1,39 @@
+{
+  "name": "specigo-lis-engine",
+  "version": "1.0.0",
+  "description": "SpeciGo LIS Integration Engine - Beckman Coulter AU480 RS-232 to LIMS bridge",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:mmi": "node index.js --config config/analysers/au480_config.json",
+    "simulate": "node test/simulate_au480.js",
+    "install-service": "node install-service.js",
+    "uninstall-service": "node uninstall-service.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7",
+    "serialport": "^12.0.0",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "node-windows": "^1.0.0-beta.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Craft Platforms Private Limited - SpeciGo",
+  "license": "UNLICENSED",
+  "private": true,
+  "pkg": {
+    "scripts": [
+      "index.js"
+    ],
+    "assets": [
+      "config/**/*",
+      "node_modules/@serialport/**/*"
+    ]
+  }
+}
