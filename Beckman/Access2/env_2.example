@@ -1,0 +1,58 @@
+# SpeciGo LIS Integration Engine - Access 2 Environment Variables
+# Copy this file to .env and fill in the values before running the engine.
+# NEVER commit .env to version control. It contains database credentials.
+#
+# On the Windows Service installation, set these as Windows environment
+# variables via System Properties -> Advanced -> Environment Variables
+# so they persist across reboots without the file.
+
+# ---------------------------------------------------------------------------
+# Database - SpeciGo LIMS MySQL
+# ---------------------------------------------------------------------------
+
+# MySQL host - use 127.0.0.1 if DB is on the same machine, or remote IP/hostname.
+DB_HOST=127.0.0.1
+
+# MySQL port - default 3306
+DB_PORT=3306
+
+# MySQL credentials - dedicated read/write user for the integration engine.
+# Do NOT use the root account.
+DB_USER=specigo_lis_user
+DB_PASSWORD=CHANGE_ME_STRONG_PASSWORD_HERE
+
+# Connection pool size - 5 is sufficient for a single-analyser deployment.
+DB_POOL_SIZE=5
+
+# MySQL database name
+DB_NAME=u151751738_theranizeDevh1
+
+# ---------------------------------------------------------------------------
+# Analyser config
+# ---------------------------------------------------------------------------
+
+# Path to the analyser JSON config file.
+# Relative paths are resolved from the project root (where index.js lives).
+# Leave unset to use the default: config/analysers/access2_config.json
+# CONFIG_FILE=config/analysers/access2_config.json
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+# Winston log level: error | warn | info | debug
+# Use 'info' in production. Use 'debug' during site commissioning.
+LOG_LEVEL=info
+
+# ---------------------------------------------------------------------------
+# REST API
+# ---------------------------------------------------------------------------
+
+# Port the Express REST API listens on.
+# The React dashboard and the cloud LIMS backend proxy to this port.
+API_PORT=3002
+
+# CORS origin for the LIMS cloud backend.
+# Set to the exact origin (e.g. https://app.specigo.in) in production.
+# Leave unset to allow all origins during local development.
+# LIMS_ORIGIN=https://app.specigo.in
