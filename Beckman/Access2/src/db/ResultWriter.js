@@ -25,6 +25,7 @@ const http    = require('http');
 const https   = require('https');
 const { URL } = require('url');
 const winston = require('winston');
+require('winston-daily-rotate-file');
 
 // ---------------------------------------------------------------------------
 // Logger
@@ -40,18 +41,20 @@ const logger = winston.createLogger({
     })
   ),
   transports: [
-    new winston.transports.File({
-      filename: 'logs/serial-error.log',
-      level   : 'error',
-      maxsize : 5 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
+    new winston.transports.DailyRotateFile({
+      dirname     : 'logs',
+      filename    : 'error-%DATE%.log',
+      datePattern : 'YYYY-MM-DD',
+      level       : 'error',
+      maxFiles    : '14d',
+      zippedArchive: false
     }),
-    new winston.transports.File({
-      filename: 'logs/serial-combined.log',
-      maxsize : 10 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
+    new winston.transports.DailyRotateFile({
+      dirname     : 'logs',
+      filename    : 'combined-%DATE%.log',
+      datePattern : 'YYYY-MM-DD',
+      maxFiles    : '14d',
+      zippedArchive: false
     }),
     new winston.transports.Console({
       format: winston.format.combine(

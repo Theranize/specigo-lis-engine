@@ -78,6 +78,7 @@ require('dotenv').config();
 // Step 3: Now safe to require modules that use Winston and process.env
 // ---------------------------------------------------------------------------
 const winston           = require('winston');
+require('winston-daily-rotate-file');
 const IntegrationEngine = require('./src/engine/IntegrationEngine');
 const IntegrationAPI    = require('./IntegrationAPI');
 
@@ -95,18 +96,20 @@ const logger = winston.createLogger({
     })
   ),
   transports: [
-    new winston.transports.File({
-      filename: path.join(logsDir, 'serial-combined.log'),
-      maxsize : 10 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
+    new winston.transports.DailyRotateFile({
+      dirname     : logsDir,
+      filename    : 'combined-%DATE%.log',
+      datePattern : 'YYYY-MM-DD',
+      maxFiles    : '14d',
+      zippedArchive: false
     }),
-    new winston.transports.File({
-      filename: path.join(logsDir, 'serial-error.log'),
-      level   : 'error',
-      maxsize : 5 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
+    new winston.transports.DailyRotateFile({
+      dirname     : logsDir,
+      filename    : 'error-%DATE%.log',
+      datePattern : 'YYYY-MM-DD',
+      level       : 'error',
+      maxFiles    : '14d',
+      zippedArchive: false
     }),
     new winston.transports.Console({
       format: winston.format.combine(
