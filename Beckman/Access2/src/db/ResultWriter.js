@@ -21,13 +21,16 @@
 
 'use strict';
 
+const http    = require('http');
+const https   = require('https');
+const { URL } = require('url');
 const winston = require('winston');
 
 // ---------------------------------------------------------------------------
 // Logger
 // ---------------------------------------------------------------------------
 const logger = winston.createLogger({
-  level: 'debug',
+  level: process.env.LOG_LEVEL || 'debug',
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
     winston.format.errors({ stack: true }),
@@ -73,6 +76,7 @@ class ResultWriter {
    * @param {string} options.analyzerUid  - From lab_analyzers.analyzer_uid.
    * @param {string} options.analyzerCode - 'ACCESS2'.
    * @param {string} options.labUid       - Default lab_uid for log entries.
+   * @param {object} [options.limsApi]    - LIMS server API config { base_url, api_key }.
    */
   constructor(options = {}) {
     if (!options.dbPool) {
@@ -83,11 +87,13 @@ class ResultWriter {
     this._analyzerUid  = options.analyzerUid  || 'unknown';
     this._analyzerCode = options.analyzerCode || 'ACCESS2';
     this._labUid       = options.labUid       || '';
+    this._limsApi      = options.limsApi      || null;
 
     logger.info('ResultWriter initialised', {
       analyzerUid : this._analyzerUid,
       analyzerCode: this._analyzerCode,
-      labUid      : this._labUid
+      labUid      : this._labUid,
+      limsApiUrl  : this._limsApi ? this._limsApi.base_url : 'not configured'
     });
   }
 
@@ -142,6 +148,8 @@ class ResultWriter {
         rows          : results.length,
         analyzerCode  : this._analyzerCode
       });
+      // Fire-and-forget: push the same results to the LIMS server API.
+      this._sendToLimsApi(results);
     } catch (err) {
       logger.error('Failed bulk insert into lis_results', {
         error       : err.message,
@@ -149,6 +157,104 @@ class ResultWriter {
         rows        : results.length
       });
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - LIMS server API push
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Sends a copy of the written results to the LIMS server REST API.
+   * Fire-and-forget - errors are logged but never interrupt result processing.
+   *
+   * Endpoint: POST <lims_api.base_url>/lis/store-analyzer-result
+   * Payload : { lab_uid, analyzer_uid, api_key, data: [...] }
+   *
+   * @param {object[]} results - MappedResult array (same objects passed to write()).
+   */
+  _sendToLimsApi(results) {
+    if (!this._limsApi || !this._limsApi.base_url) return;
+
+    const STATUS_MAP = { F: 'final', P: 'preliminary', C: 'corrected', X: 'cannot_be_done' };
+    const AGE_TYPE_MAP = { YEAR: 'Y', MONTH: 'M' };
+
+    const payload = {
+      lab_uid     : this._labUid,
+      analyzer_uid: this._analyzerUid,
+      api_key     : this._limsApi.api_key || '',
+      data        : results.map((r) => {
+        const age     = r.age_year !== null && r.age_year !== undefined
+          ? r.age_year
+          : (r.age_month !== null && r.age_month !== undefined ? r.age_month : null);
+        const ageType = AGE_TYPE_MAP[r.age_type] || null;
+        return {
+          lab_uid       : r.lab_uid        ?? this._labUid,
+          analyzer_uid  : r.analyzer_uid   ?? this._analyzerUid,
+          barcode_uid   : r.barcode_uid    ?? null,
+          parameter_code: r.parameter_code ?? null,
+          value         : r.value !== null && r.value !== undefined ? String(r.value) : null,
+          flag          : r.flag           ?? null,
+          unit          : r.unit           ?? null,
+          patient_name  : r.patient_name   ?? null,
+          age           : age,
+          age_type      : ageType,
+          gender        : r.gender         ?? null,
+          status        : STATUS_MAP[r.result_status] || 'final'
+        };
+      })
+    };
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL('/lis/store-analyzer-result', this._limsApi.base_url);
+    } catch (err) {
+      logger.error('LIMS API: invalid base_url in config', { error: err.message });
+      return;
+    }
+
+    const bodyStr   = JSON.stringify(payload);
+    const transport = parsedUrl.protocol === 'https:' ? https : http;
+
+    const options = {
+      hostname: parsedUrl.hostname,
+      port    : parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path    : parsedUrl.pathname,
+      method  : 'POST',
+      headers : {
+        'Content-Type'  : 'application/json',
+        'Content-Length': Buffer.byteLength(bodyStr)
+      }
+    };
+
+    const req = transport.request(options, (res) => {
+      let responseBody = '';
+      res.on('data', (chunk) => { responseBody += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          logger.info('LIMS API push successful', {
+            statusCode: res.statusCode,
+            rows      : results.length
+          });
+        } else {
+          logger.warn('LIMS API push returned non-2xx', {
+            statusCode  : res.statusCode,
+            responseBody: responseBody.substring(0, 200)
+          });
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      logger.error('LIMS API push failed', { error: err.message });
+    });
+
+    req.setTimeout(10000, () => {
+      logger.error('LIMS API push timed out after 10s');
+      req.destroy();
+    });
+
+    req.write(bodyStr);
+    req.end();
   }
 
   /**

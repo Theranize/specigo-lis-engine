@@ -38,7 +38,7 @@ const ResultWriter      = require('../db/ResultWriter');
 // Logger
 // ---------------------------------------------------------------------------
 const logger = winston.createLogger({
-  level: 'debug',
+  level: process.env.LOG_LEVEL || 'debug',
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
     winston.format.errors({ stack: true }),
@@ -268,12 +268,12 @@ class IntegrationEngine {
   // ---------------------------------------------------------------------------
 
   async _createDbPool() {
-    const host     = process.env.DB_HOST;
-    const port     = parseInt(process.env.DB_PORT || '3306', 10);
-    const user     = process.env.DB_USER;
-    const password = process.env.DB_PASSWORD;
-    const poolSize = parseInt(process.env.DB_POOL_SIZE || '5', 10);
-    const database = process.env.DB_NAME || 'u151751738_theranizeDevh1';
+    const host     = '127.0.0.1';
+    const port     = 3306;
+    const user     = 'admin';
+    const password = 'admin';
+    const poolSize = 5;
+    const database = 'lis_db';
 
     if (!host || !user || !password) {
       throw new Error(
@@ -488,7 +488,8 @@ class IntegrationEngine {
       dbPool      : pool,
       analyzerUid : cfg.analyzer_uid,
       analyzerCode: 'ACCESS2',
-      labUid      : cfg.lab_uid
+      labUid      : cfg.lab_uid,
+      limsApi     : cfg.lims_api || null
     });
 
     logger.info('ParameterMapper and ResultWriter initialised - engine fully operational');

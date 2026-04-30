@@ -2,3 +2,4 @@ node_modules
 logs/serial-combined.log
 logs/serial-error.log
 logs/simulator.log
+.env
