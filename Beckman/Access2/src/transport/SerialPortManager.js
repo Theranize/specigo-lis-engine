@@ -195,10 +195,10 @@ class SerialPortManager extends EventEmitter {
         dataBits: this._config.dataBits,
         stopBits: this._config.stopBits,
         parity  : this._config.parity,
-        rtscts  : false,
-        xon     : false,
-        xoff    : false,
-        autoOpen: false
+        rtscts  : this._config.rtscts,
+        xon     : this._config.xon,
+        xoff    : this._config.xoff,
+        autoOpen: this._config.autoOpen
       });
 
       port.on('open', () => {

@@ -22,7 +22,11 @@
     "dataBits": 8,
     "stopBits": 1,
     "parity": "none",
-    "flowControl": "none"
+    "flowControl": "none",
+    "rtscts"  : false,
+    "xon"     : false,
+    "xoff"    : false,
+    "autoOpen": false
   },
 
   "protocol": {

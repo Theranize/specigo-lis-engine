@@ -330,7 +330,11 @@ class IntegrationEngine {
       stopBits    : cfg.connection.stopBits,
       parity      : cfg.connection.parity,
       analyzerUid : cfg.analyzer_uid,
-      labUid      : cfg.lab_uid
+      labUid      : cfg.lab_uid,
+      rtscts      : cfg.connection.rtscts,
+      xon         : cfg.connection.xon,
+      xoff        : cfg.connection.xoff,
+      autoOpen    : cfg.connection.autoOpen
     });
 
     // --- 2. ASTMFramer ---

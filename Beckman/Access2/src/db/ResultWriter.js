@@ -270,7 +270,7 @@ class ResultWriter {
    */
   async logSessionEvent(eventType, labUid) {
     const sql = `
-      INSERT INTO lis_integration_log_backeman_access2
+      INSERT INTO lis_integration_log
         (lab_uid, analyzer_uid, session_type, message_code, details, created_at)
       VALUES
         (?, ?, ?, ?, ?, NOW())
