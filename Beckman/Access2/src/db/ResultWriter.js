@@ -281,13 +281,6 @@ class ResultWriter {
       : 'ASTM transmission session ended (EOT received)';
 
     try {
-      console.log('Logging session event:', [
-        labUid || this._labUid,
-        this._analyzerUid,
-        eventType,
-        eventType,
-        detail
-      ]);
       await this._pool.execute(sql, [
         labUid || this._labUid,
         this._analyzerUid,

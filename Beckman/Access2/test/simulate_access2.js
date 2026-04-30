@@ -222,7 +222,6 @@ class Access2Simulator {
   }
 
   async run() {
-    console.log(`[SIMULATOR] Opening port: ${this._portPath}`);
 
     this._port = new SerialPort({
       path    : this._portPath,
@@ -236,7 +235,6 @@ class Access2Simulator {
     await new Promise((resolve, reject) => {
       this._port.open((err) => {
         if (err) return reject(err);
-        console.log('[SIMULATOR] Port opened');
         resolve();
       });
     });
@@ -250,13 +248,11 @@ class Access2Simulator {
 
     // Transmit each sample as a separate ENQ-EOT session
     for (let i = 0; i < SAMPLES.length; i++) {
-      console.log(`\n[SIMULATOR] Transmitting sample ${i + 1}: ${SAMPLES[i].sampleId}`);
       await this._transmitSession(SAMPLES[i], i + 1);
       // Pause between samples to simulate realistic analyser timing
       await this._sleep(500);
     }
 
-    console.log('\n[SIMULATOR] All samples transmitted. Closing port.');
     await new Promise((resolve) => this._port.close(resolve));
   }
 
@@ -268,7 +264,6 @@ class Access2Simulator {
    */
   async _transmitSession(sample, msgSeq) {
     // Send ENQ and wait for ACK
-    console.log('[SIMULATOR] -> ENQ');
     this._port.write(ENQ);
 
     const ackForEnq = await this._waitForByte(ACK, 3000);
@@ -276,7 +271,6 @@ class Access2Simulator {
       console.error('[SIMULATOR] No ACK received for ENQ - aborting session');
       return;
     }
-    console.log('[SIMULATOR] <- ACK (for ENQ)');
 
     // Build the ASTM message records
     const records = buildMessage(sample, msgSeq);
@@ -291,23 +285,15 @@ class Access2Simulator {
       const frame    = buildFrame(frameNo, records[i], isLast);
       const csStr    = computeChecksum(frameNo, records[i], ETX);
 
-      console.log(`[SIMULATOR] -> Frame ${frameNo}: ${records[i].substring(0, 60)}... CS=${csStr}`);
       this._port.write(frame);
 
       const ackForFrame = await this._waitForByte(ACK, 3000);
-      if (!ackForFrame) {
-        console.error(`[SIMULATOR] No ACK for frame ${frameNo} - sending NAK would trigger retry`);
-        // In a real device, retry logic would be here. For simulation, just continue.
-      } else {
-        console.log(`[SIMULATOR] <- ACK (for frame ${frameNo})`);
-      }
 
       // Cycle frame number 1-7
       frameCounter = frameCounter >= 7 ? 1 : frameCounter + 1;
     }
 
     // Send EOT to close the session
-    console.log('[SIMULATOR] -> EOT');
     this._port.write(EOT);
 
     await this._sleep(200);
