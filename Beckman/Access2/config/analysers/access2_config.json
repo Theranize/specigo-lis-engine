@@ -7,7 +7,7 @@
 
   "analyser_id": "ACCESS2",
   "lab_uid": "6887129073FDA",
-  "analyzer_uid": "[FROM_lab_analyzers_TABLE]",
+  "analyzer_uid": "6887129073FDA",
   "manufacturer": "Beckman Coulter",
   "model": "Access 2",
   "model_family": "Access Series",
@@ -18,7 +18,7 @@
   "connection": {
     "_comment": "CONFIRMED from Access 2 LIS Settings screen photo (07 April 2026). Port COM2, 9600 baud, 8N1.",
     "type": "serial",
-    "port": "COM2",
+    "port": "COM4",
     "baudRate": 9600,
     "dataBits": 8,
     "stopBits": 1,

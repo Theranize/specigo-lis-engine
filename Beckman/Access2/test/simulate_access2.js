@@ -53,7 +53,7 @@ const path           = require('path');
 // Configuration
 // ---------------------------------------------------------------------------
 // const DEFAULT_PORT = 'COM3';
-const DEFAULT_PORT = 'COM3';
+const DEFAULT_PORT = '/dev/ttyV1';
 
 function parsePortArg() {
   const args  = process.argv.slice(2);

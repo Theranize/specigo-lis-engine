@@ -164,6 +164,20 @@ class Access2Parser extends EventEmitter {
       sessionsEnded    : 0
     };
 
+    // Session-scoped state persisted across parse() calls (one call per ASTM frame).
+    // Reset on H record; used to correlate P, O context with subsequent R records.
+    this._session = {
+      headerSender   : '',
+      sampleId       : '',
+      patientName    : '',
+      patientDob     : '',
+      sex            : '',
+      resultCategory : 'PATIENT'
+    };
+
+    // R records accumulate here until the L record triggers the 'results' emit.
+    this._pendingResults = [];
+
     logger.info('Access2Parser initialised', {
       filters    : this._filters,
       analyzerUid: this._analyzerUid
@@ -243,16 +257,6 @@ class Access2Parser extends EventEmitter {
    * @param {string}   rawMessage  - Full original message text for audit.
    */
   _processRecords(records, rawMessage) {
-    // Context accumulated across records within one logical message
-    let headerSender   = '';
-    let sampleId       = '';
-    let patientName    = '';
-    let patientDob     = '';
-    let sex            = '';
-    let resultCategory = 'PATIENT';
-
-    const parsedResults = [];
-
     for (const record of records) {
       if (record.length === 0) continue;
 
@@ -260,8 +264,18 @@ class Access2Parser extends EventEmitter {
 
       switch (recordType) {
         case 'H':
+          // New transmission session - reset all session context and pending results.
+          this._session = {
+            headerSender   : '',
+            sampleId       : '',
+            patientName    : '',
+            patientDob     : '',
+            sex            : '',
+            resultCategory : 'PATIENT'
+          };
+          this._pendingResults = [];
           this._parseHeaderRecord(record, (ctx) => {
-            headerSender = ctx.sender;
+            this._session.headerSender = ctx.sender;
           });
           this.stats.sessionsStarted++;
           this.emit('sessionStart');
@@ -269,40 +283,46 @@ class Access2Parser extends EventEmitter {
 
         case 'P':
           this._parsePatientRecord(record, (ctx) => {
-            patientName = ctx.patientName;
-            patientDob  = ctx.patientDob;
-            sex         = ctx.sex;
+            this._session.patientName = ctx.patientName;
+            this._session.patientDob  = ctx.patientDob;
+            this._session.sex         = ctx.sex;
           });
           break;
 
         case 'O':
           this._parseOrderRecord(record, (ctx) => {
-            sampleId       = ctx.sampleId;
-            resultCategory = ctx.resultCategory;
+            this._session.sampleId       = ctx.sampleId;
+            this._session.resultCategory = ctx.resultCategory;
           });
           break;
 
         case 'R':
-          if (!sampleId) {
+          if (!this._session.sampleId) {
             logger.warn('R record received before O record - sampleId unknown, record skipped', {
               record: record.substring(0, 60)
             });
             break;
           }
 
-          if (!this._isCategoryEnabled(resultCategory)) {
+          if (!this._isCategoryEnabled(this._session.resultCategory)) {
             this.stats.messagesFiltered++;
-            logger.debug('R record filtered by category', { resultCategory });
-            this.emit('filtered', `category ${resultCategory} disabled in config`);
+            logger.debug('R record filtered by category', { resultCategory: this._session.resultCategory });
+            this.emit('filtered', `category ${this._session.resultCategory} disabled in config`);
             break;
           }
 
           try {
             const result = this._parseResultRecord(
-              record, sampleId, patientName, patientDob,
-              sex, resultCategory, headerSender, rawMessage
+              record,
+              this._session.sampleId,
+              this._session.patientName,
+              this._session.patientDob,
+              this._session.sex,
+              this._session.resultCategory,
+              this._session.headerSender,
+              rawMessage
             );
-            if (result) parsedResults.push(result);
+            if (result) this._pendingResults.push(result);
           } catch (err) {
             this.stats.parseErrors++;
             logger.error('Error parsing R record', {
@@ -312,11 +332,23 @@ class Access2Parser extends EventEmitter {
           }
           break;
 
-        case 'L':
-          // Message terminator - process any collected results
+        case 'L': {
+          // Message terminator - emit all accumulated R results for this session.
+          const toEmit = this._pendingResults;
+          this._pendingResults = [];
           this.stats.sessionsEnded++;
           this.emit('sessionEnd');
+
+          if (toEmit.length > 0) {
+            this.stats.resultsEmitted += toEmit.length;
+            logger.info('Results parsed from ASTM message', {
+              count   : toEmit.length,
+              sampleId: this._session.sampleId
+            });
+            this.emit('results', toEmit);
+          }
           break;
+        }
 
         case 'Q':
         case 'C':
@@ -327,15 +359,6 @@ class Access2Parser extends EventEmitter {
         default:
           logger.debug('Unknown ASTM record type - skipping', { recordType });
       }
-    }
-
-    if (parsedResults.length > 0) {
-      this.stats.resultsEmitted += parsedResults.length;
-      logger.info('Results parsed from ASTM message', {
-        count   : parsedResults.length,
-        sampleId: sampleId
-      });
-      this.emit('results', parsedResults);
     }
   }
 
@@ -372,18 +395,20 @@ class Access2Parser extends EventEmitter {
 
   /**
    * Parses the P (Patient) record.
-   * Field layout per ASTM LIS2-A2 Table 11:
-   * P|seq|lab_id|lab_id2|pid3|patient_name|maiden|dob|sex|...
+   * Field layout as transmitted by the Beckman Coulter Access 2
+   * (confirmed from device output - differs from vanilla ASTM LIS2-A2 offsets):
    *
-   * [0] P
-   * [1] Sequence number
-   * [2] Practice-assigned patient ID
-   * [3] Laboratory-assigned patient ID
-   * [4] Patient ID No. 3
-   * [5] Patient name (last^first^middle)
-   * [6] Mother's maiden name
-   * [7] Birthdate (YYYYMMDD)
-   * [8] Sex (M/F/U/I)
+   * [0]  P
+   * [1]  Sequence number
+   * [2]  Practice-assigned patient ID (empty on Access 2)
+   * [3]  Laboratory-assigned patient ID (specimen barcode)
+   * [4]  Patient ID No. 3 (empty on Access 2)
+   * [5]  (empty on Access 2)
+   * [6]  (empty on Access 2)
+   * [7]  Patient name (last^first)
+   * [8]  (empty on Access 2)
+   * [9]  Birthdate (YYYYMMDD)
+   * [10] Sex (M/F/U)
    *
    * @param {string}   record   - Full P record line.
    * @param {Function} callback - Receives { patientName, patientDob, sex }.
@@ -391,15 +416,15 @@ class Access2Parser extends EventEmitter {
   _parsePatientRecord(record, callback) {
     const fields = record.split(FIELD_DELIMITER);
 
-    const nameField  = fields[5] || '';
+    const nameField  = fields[7] || '';
     const nameParts  = nameField.split(COMPONENT_DELIMITER);
     // Reconstruct readable name: "First Last" from "Last^First"
     const lastName   = (nameParts[0] || '').trim();
     const firstName  = (nameParts[1] || '').trim();
     const patientName = [firstName, lastName].filter(Boolean).join(' ') || lastName;
 
-    const patientDob = (fields[7] || '').trim();
-    const sex        = (fields[8] || '').trim().toUpperCase();
+    const patientDob = (fields[9]  || '').trim();
+    const sex        = (fields[10] || '').trim().toUpperCase();
 
     logger.debug('P record parsed', { patientName, patientDob, sex });
     callback({ patientName, patientDob, sex });

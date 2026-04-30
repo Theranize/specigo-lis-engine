@@ -7,7 +7,7 @@
 
   "analyser_id": "AU480",
   "lab_uid": "6887129073FDA",
-  "analyzer_uid": "[FROM_lab_analyzers_TABLE]",
+  "analyzer_uid": "6887129073123",
   "manufacturer": "Beckman Coulter",
   "model": "AU480",
   "model_family": "AU Series",
@@ -21,7 +21,7 @@
   "connection": {
     "_comment": "CONFIRMED: USB-SERIAL CH340 adapter assigned COM4 (verified via Device Manager April 2026).",
     "type": "serial",
-    "port": "/dev/ttyV0",
+    "port": "COM4",
     "baudRate": 9600,
     "dataBits": 8,
     "stopBits": 1,

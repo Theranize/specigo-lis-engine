@@ -315,11 +315,11 @@ class IntegrationEngine {
    * @returns {Promise<mysql2.Pool>}
    */
   async _createDbPool() {
-    const host     = process.env.DB_HOST;
+    const host     = "69.62.77.70";
     const port     = parseInt(process.env.DB_PORT || '3306', 10);
-    const user     = process.env.DB_USER;
-    const password = process.env.DB_PASSWORD;
-    const poolSize = parseInt(process.env.DB_POOL_SIZE || '5', 10);
+    const user     = "u151751738_theranizeDevU";
+    const password = "Aw&v7Ac9";
+    const poolSize = 5;
 
     // Database name is fixed - confirmed from foundation document
     const database = process.env.DB_NAME || 'u151751738_theranizeDevh1';
@@ -423,6 +423,7 @@ class IntegrationEngine {
     // SerialPortManager -> MessageFramer
     // Every raw byte chunk delivered to the framer for STX/ETX extraction
     this._serialManager.on('data', (chunk) => {
+      logger.info('chunk received', { hex: chunk.toString('hex').toUpperCase() });
       this._framer.ingest(chunk);
     });
 
@@ -450,6 +451,7 @@ class IntegrationEngine {
     // MessageFramer -> AU480Parser
     // Complete frames passed to the parser
     this._framer.on('frame', (frameBuffer) => {
+      logger.info('frame dispatch', { ascii: frameBuffer.toString('ascii'), hex: frameBuffer.toString('hex').toUpperCase() });
       this._parser.parse(frameBuffer);
     });
 

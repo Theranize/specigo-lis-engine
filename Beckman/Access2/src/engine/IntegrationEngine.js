@@ -386,6 +386,7 @@ class IntegrationEngine {
 
     // ASTMFramer -> Access2Parser
     this._framer.on('message', (messageText) => {
+      console.log('ASTM message received =>>>>>', { messageText });
       this._parser.parse(messageText);
     });
 
@@ -440,6 +441,7 @@ class IntegrationEngine {
 
       try {
         const mapped = this._mapper.map(parsedResults);
+        console.log('Mapped results ready for writing:', mapped);
         await this._writer.write(mapped);
         this._stats.resultsWritten += mapped.length;
       } catch (err) {

@@ -1,0 +1,296 @@
+C:\Users\hp\Desktop\Au480>specigo-lis-engine.exe
+[16:59:47.743] [INDEX]  info:
+╔══════════════════════════════════════════════════════════════╗
+║          SpeciGo LIS Integration Engine                      ║
+║          Beckman Coulter AU480  |  Lab Name                  ║
+║          Node.js v18.5.0  | PID 59560                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+[16:59:47.744] [INDEX]  info: Starting engine
+[16:59:47.745] [ENGINE] info: IntegrationEngine constructed
+[16:59:47.745] [ENGINE] info: IntegrationEngine starting...
+[16:59:47.746] [ENGINE] info: Config loaded successfully
+[16:59:47.747] [SERIAL] info: SerialPortManager initialised
+[16:59:47.747] [FRAMER] info: MessageFramer initialised
+[16:59:47.748] [AU480] info: AU480Parser initialised
+[16:59:47.748] [ENGINE] info: All serial modules instantiated and events wired - waiting for DB
+[16:59:47.749] [ENGINE] debug: Shutdown handlers registered
+[16:59:47.749] [SERIAL] info: Opening serial port
+[16:59:47.753] [SERIAL] info: Serial port opened successfully
+[16:59:47.753] [ENGINE] info: Serial port connected - engine ready to receive data
+[16:59:47.753] [FRAMER] info: MessageFramer state reset
+[16:59:47.754] [ENGINE] info: IntegrationEngine running - serial port open
+[16:59:47.754] [ENGINE] info: Background DB connection started
+[16:59:47.754] [ENGINE] info: Attempting database connection...
+[16:59:47.756] [INDEX]  info: Engine started successfully - listening for AU480 data
+[16:59:47.973] [ENGINE] info: Database pool created and verified
+[16:59:47.974] [MAPPER] info: ParameterMapper initialised
+[16:59:47.976] [WRITER] info: ResultWriter initialised
+[16:59:47.976] [ENGINE] info: ParameterMapper and ResultWriter initialised - engine fully operational
+[16:59:47.978] [ENGINE] info: Database connected - engine fully operational
+[17:00:12.171] [SERIAL] debug: Serial data received
+[17:00:12.172] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> DB
+[17:00:12.174] [FRAMER] debug: Ingesting chunk
+[17:00:12.174] [FRAMER] debug: STX detected - frame start
+[17:00:12.175] [FRAMER] debug: ETX detected - frame complete
+[17:00:12.175] [FRAMER] debug: Dispatching frame
+[17:00:12.177] [AU480] debug: Parsing frame
+[17:00:12.177] [AU480] info: Analysis data transmission START (DB) received
+[17:00:12.178] [ENGINE] info: Analyser session started (DB received)
+[17:00:12.179] [MAPPER] info: ParameterMapper cache cleared
+[17:00:12.182] [FRAMER] debug: ACK sent
+[17:00:12.265] [WRITER] info: Session event logged
+[17:00:14.457] [SERIAL] debug: Serial data received
+[17:00:14.457] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> D 00270
+[17:00:14.457] [FRAMER] debug: Ingesting chunk
+[17:00:14.458] [FRAMER] debug: STX detected - frame start
+[17:00:14.465] [SERIAL] debug: Serial data received
+[17:00:14.465] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 1 0020
+[17:00:14.465] [FRAMER] debug: Ingesting chunk
+[17:00:14.473] [SERIAL] debug: Serial data received
+[17:00:14.473] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:14.474] [FRAMER] debug: Ingesting chunk
+[17:00:14.482] [SERIAL] debug: Serial data received
+[17:00:14.482] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>       26
+[17:00:14.482] [FRAMER] debug: Ingesting chunk
+[17:00:14.490] [SERIAL] debug: Serial data received
+[17:00:14.491] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 27001925
+[17:00:14.491] [FRAMER] debug: Ingesting chunk
+[17:00:14.499] [SERIAL] debug: Serial data received
+[17:00:14.499] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>     E0
+[17:00:14.500] [FRAMER] debug: Ingesting chunk
+[17:00:14.508] [SERIAL] debug: Serial data received
+[17:00:14.508] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:14.509] [FRAMER] debug: Ingesting chunk
+[17:00:14.516] [SERIAL] debug: Serial data received
+[17:00:14.516] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:14.516] [FRAMER] debug: Ingesting chunk
+[17:00:14.524] [SERIAL] debug: Serial data received
+[17:00:14.525] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>        0
+[17:00:14.525] [FRAMER] debug: Ingesting chunk
+[17:00:14.533] [SERIAL] debug: Serial data received
+[17:00:14.533] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 17  0.92r
+[17:00:14.534] [FRAMER] debug: Ingesting chunk
+[17:00:14.541] [SERIAL] debug: Serial data received
+[17:00:14.542] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>  021123.
+[17:00:14.543] [FRAMER] debug: Ingesting chunk
+[17:00:14.551] [SERIAL] debug: Serial data received
+[17:00:14.551] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 49r
+[17:00:14.552] [FRAMER] debug: Ingesting chunk
+[17:00:14.552] [FRAMER] debug: ETX detected - frame complete
+[17:00:14.552] [FRAMER] debug: Dispatching frame
+[17:00:14.553] [AU480] debug: Parsing frame
+[17:00:14.553] [AU480] error: Frame parse error
+[17:00:14.554] [ENGINE] error: AU480 parse error
+[17:00:14.554] [FRAMER] debug: ACK sent
+[17:00:16.614] [SERIAL] debug: Serial data received
+[17:00:16.615] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> D 00220
+[17:00:16.615] [FRAMER] debug: Ingesting chunk
+[17:00:16.616] [FRAMER] debug: STX detected - frame start
+[17:00:16.622] [SERIAL] debug: Serial data received
+[17:00:16.623] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 1 0021
+[17:00:16.624] [FRAMER] debug: Ingesting chunk
+[17:00:16.630] [SERIAL] debug: Serial data received
+[17:00:16.631] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:16.631] [FRAMER] debug: Ingesting chunk
+[17:00:16.639] [SERIAL] debug: Serial data received
+[17:00:16.639] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>       26
+[17:00:16.640] [FRAMER] debug: Ingesting chunk
+[17:00:16.647] [SERIAL] debug: Serial data received
+[17:00:16.647] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 27001921
+[17:00:16.648] [FRAMER] debug: Ingesting chunk
+[17:00:16.655] [SERIAL] debug: Serial data received
+[17:00:16.656] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>     E0
+[17:00:16.656] [FRAMER] debug: Ingesting chunk
+[17:00:16.664] [SERIAL] debug: Serial data received
+[17:00:16.664] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:16.665] [FRAMER] debug: Ingesting chunk
+[17:00:16.672] [SERIAL] debug: Serial data received
+[17:00:16.672] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:16.672] [FRAMER] debug: Ingesting chunk
+[17:00:16.680] [SERIAL] debug: Serial data received
+[17:00:16.680] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>        0
+[17:00:16.681] [FRAMER] debug: Ingesting chunk
+[17:00:16.689] [SERIAL] debug: Serial data received
+[17:00:16.689] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 17  1.08
+[17:00:16.689] [FRAMER] debug: Ingesting chunk
+[17:00:16.697] [SERIAL] debug: Serial data received
+[17:00:16.697] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> r 021176
+[17:00:16.698] [FRAMER] debug: Ingesting chunk
+[17:00:16.708] [SERIAL] debug: Serial data received
+[17:00:16.708] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> .36r
+[17:00:16.709] [FRAMER] debug: Ingesting chunk
+[17:00:16.709] [FRAMER] debug: ETX detected - frame complete
+[17:00:16.710] [FRAMER] debug: Dispatching frame
+[17:00:16.710] [AU480] debug: Parsing frame
+[17:00:16.711] [AU480] error: Frame parse error
+[17:00:16.712] [ENGINE] error: AU480 parse error
+[17:00:16.713] [FRAMER] debug: ACK sent
+[17:00:18.787] [SERIAL] debug: Serial data received
+[17:00:18.788] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> D 002202
+[17:00:18.789] [FRAMER] debug: Ingesting chunk
+[17:00:18.790] [FRAMER] debug: STX detected - frame start
+[17:00:18.796] [SERIAL] debug: Serial data received
+[17:00:18.796] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>  0022
+[17:00:18.798] [FRAMER] debug: Ingesting chunk
+[17:00:18.805] [SERIAL] debug: Serial data received
+[17:00:18.806] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:18.807] [FRAMER] debug: Ingesting chunk
+[17:00:18.813] [SERIAL] debug: Serial data received
+[17:00:18.814] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>     2627
+[17:00:18.815] [FRAMER] debug: Ingesting chunk
+[17:00:18.822] [SERIAL] debug: Serial data received
+[17:00:18.822] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 001916
+[17:00:18.822] [FRAMER] debug: Ingesting chunk
+[17:00:18.829] [SERIAL] debug: Serial data received
+[17:00:18.829] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>   E0
+[17:00:18.830] [FRAMER] debug: Ingesting chunk
+[17:00:18.838] [SERIAL] debug: Serial data received
+[17:00:18.839] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:18.839] [FRAMER] debug: Ingesting chunk
+[17:00:18.846] [SERIAL] debug: Serial data received
+[17:00:18.846] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>
+[17:00:18.847] [FRAMER] debug: Ingesting chunk
+[17:00:18.855] [SERIAL] debug: Serial data received
+[17:00:18.855] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>      009
+[17:00:18.856] [FRAMER] debug: Ingesting chunk
+[17:00:18.862] [SERIAL] debug: Serial data received
+[17:00:18.863] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>   4.70r
+[17:00:18.863] [FRAMER] debug: Ingesting chunk
+[17:00:18.871] [SERIAL] debug: Serial data received
+[17:00:18.871] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 010 34.6
+[17:00:18.872] [FRAMER] debug: Ingesting chunk
+[17:00:18.879] [SERIAL] debug: Serial data received
+[17:00:18.879] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 4r 011 2
+[17:00:18.880] [FRAMER] debug: Ingesting chunk
+[17:00:18.887] [SERIAL] debug: Serial data received
+[17:00:18.888] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 6.95r 01
+[17:00:18.888] [FRAMER] debug: Ingesting chunk
+[17:00:18.896] [SERIAL] debug: Serial data received
+[17:00:18.896] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 3 20.32r
+[17:00:18.897] [FRAMER] debug: Ingesting chunk
+[17:00:18.904] [SERIAL] debug: Serial data received
+[17:00:18.904] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>  015183.
+[17:00:18.905] [FRAMER] debug: Ingesting chunk
+[17:00:18.912] [SERIAL] debug: Serial data received
+[17:00:18.913] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 38r 017
+[17:00:18.914] [FRAMER] debug: Ingesting chunk
+[17:00:18.920] [SERIAL] debug: Serial data received
+[17:00:18.921] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>  0.85r 0
+[17:00:18.921] [FRAMER] debug: Ingesting chunk
+[17:00:18.929] [SERIAL] debug: Serial data received
+[17:00:18.930] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 19  0.20
+[17:00:18.930] [FRAMER] debug: Ingesting chunk
+[17:00:18.938] [SERIAL] debug: Serial data received
+[17:00:18.939] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> r 020 19.
+[17:00:18.939] [FRAMER] debug: Ingesting chunk
+[17:00:18.947] [SERIAL] debug: Serial data received
+[17:00:18.948] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 71r 021
+[17:00:18.948] [FRAMER] debug: Ingesting chunk
+[17:00:18.956] [SERIAL] debug: Serial data received
+[17:00:18.956] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 98.55r 0
+[17:00:18.956] [FRAMER] debug: Ingesting chunk
+[17:00:18.964] [SERIAL] debug: Serial data received
+[17:00:18.964] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 22 40.17
+[17:00:18.964] [FRAMER] debug: Ingesting chunk
+[17:00:18.972] [SERIAL] debug: Serial data received
+[17:00:18.972] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> r 027  0
+[17:00:18.973] [FRAMER] debug: Ingesting chunk
+[17:00:18.980] [SERIAL] debug: Serial data received
+[17:00:18.980] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> .69r 028
+[17:00:18.981] [FRAMER] debug: Ingesting chunk
+[17:00:18.989] [SERIAL] debug: Serial data received
+[17:00:18.989] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>   7.38r
+[17:00:18.990] [FRAMER] debug: Ingesting chunk
+[17:00:18.996] [SERIAL] debug: Serial data received
+[17:00:18.997] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 029113.2
+[17:00:18.997] [FRAMER] debug: Ingesting chunk
+[17:00:19.005] [SERIAL] debug: Serial data received
+[17:00:19.006] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 9r 030 1
+[17:00:19.006] [FRAMER] debug: Ingesting chunk
+[17:00:19.013] [SERIAL] debug: Serial data received
+[17:00:19.013] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 3.90r 03
+[17:00:19.014] [FRAMER] debug: Ingesting chunk
+[17:00:19.022] [SERIAL] debug: Serial data received
+[17:00:19.022] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 1  7.08r
+[17:00:19.023] [FRAMER] debug: Ingesting chunk
+[17:00:19.030] [SERIAL] debug: Serial data received
+[17:00:19.030] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>>  033  2.
+[17:00:19.031] [FRAMER] debug: Ingesting chunk
+[17:00:19.039] [SERIAL] debug: Serial data received
+[17:00:19.040] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> 68r
+[17:00:19.040] [FRAMER] debug: Ingesting chunk
+[17:00:19.040] [FRAMER] debug: ETX detected - frame complete
+[17:00:19.041] [FRAMER] debug: Dispatching frame
+[17:00:19.041] [AU480] debug: Parsing frame
+[17:00:19.041] [AU480] error: Frame parse error
+[17:00:19.042] [ENGINE] error: AU480 parse error
+[17:00:19.042] [FRAMER] debug: ACK sent
+[17:00:21.396] [SERIAL] debug: Serial data received
+[17:00:21.396] [ENGINE] info: chunk received =>>>>>>>>>>>>>>>>>>>>
+chunk received =>>>>>>>>>>>>>>>>>>>> DE
+[17:00:21.397] [FRAMER] debug: Ingesting chunk
+[17:00:21.397] [FRAMER] debug: STX detected - frame start
+[17:00:21.398] [FRAMER] debug: ETX detected - frame complete
+[17:00:21.398] [FRAMER] debug: Dispatching frame
+[17:00:21.398] [AU480] debug: Parsing frame
+[17:00:21.399] [AU480] info: Analysis data transmission END (DE) received
+[17:00:21.399] [ENGINE] info: Analyser session ended (DE received)
+[17:00:21.401] [FRAMER] debug: ACK sent
+[17:00:21.442] [WRITER] info: Session event logged

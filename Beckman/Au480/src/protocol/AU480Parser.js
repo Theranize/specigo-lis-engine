@@ -385,6 +385,12 @@ class AU480Parser extends EventEmitter {
     // At MMI, Sample ID is always 13 chars (barcode_uid).
     // We use the known length when available. Fallback searches for the 4-space
     // dummy marker to find the ID boundary for non-MMI deployments.
+    //
+    // NOTE (22 Apr 2026):
+    // Some AU480 configurations send the barcode later in the frame as a numeric token
+    // (e.g. "... 2627002017    E0 ...") and keep the "Sample ID" fixed slot blank.
+    // In that case, fixed-position extraction produces empty sampleId and the parser
+    // used to throw. We now fall back to extracting the barcode from the frame tokens.
     let sampleId;
     let postIdOffset;  // offset of the first char AFTER the dummy field
 
@@ -400,8 +406,45 @@ class AU480Parser extends EventEmitter {
       postIdOffset = dummyIdx + DUMMY_MARKER.length;
     }
 
+    // If sampleId is empty, attempt to derive it from the frame by tokenizing.
+    // Example frame:
+    // "D 002201 0031                2627002017    E0                         021103.96r "
     if (!sampleId) {
-      throw new Error('Sample ID is empty in frame - barcode not scanned or not transmitted');
+      const payload = frameStr.substring(2).trim(); // remove "D " / "DH" etc; ok for D-space frames
+      const tokens = payload.split(/\s+/).filter(Boolean);
+
+      // Expected leading tokens: [rackNo, cupPosition, ...]
+      // Barcode commonly appears as a numeric token (>=6 digits) after rack/cup.
+      const derivedRack = tokens[0] || rackNo;
+      const derivedCup  = tokens[1] || cupPosition;
+
+      let derived = '';
+      for (let i = 2; i < tokens.length; i++) {
+        if (/^\d{6,}$/.test(tokens[i])) {
+          derived = tokens[i];
+          break;
+        }
+      }
+
+      if (derived) {
+        sampleId = derived;
+        logger.warn('Sample ID empty in fixed slot; derived barcode from tokens', {
+          rackNo     : derivedRack,
+          cupPosition: derivedCup,
+          derivedId  : sampleId,
+          code       : code
+        });
+      } else {
+        // Last-resort: do NOT crash the whole session; use rack+cup as sample identity
+        // so results can still be written and traced.
+        sampleId = `${derivedRack}${derivedCup}`;
+        logger.warn('Sample ID empty and barcode not found; using rack+cup as sampleId', {
+          rackNo     : derivedRack,
+          cupPosition: derivedCup,
+          fallbackId : sampleId,
+          code       : code
+        });
+      }
     }
 
     // --- Data Classification No. ---
