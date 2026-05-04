@@ -56,17 +56,6 @@
     "lisSendMode": "By Sample Container"
   },
 
-  "lims_api": {
-    "_comment": "LIMS server REST API - results are pushed here after local DB write.",
-    "base_url": "http://127.0.0.1",
-    "api_key" : "86620e12113775c39f3a29a795e494e4"
-  },
-
-  "logger": {
-    "_comment": "Winston log level: error | warn | info | debug. Use 'info' in production. Use 'debug' during site commissioning at Lab.",
-    "log_level": "debug"
-  },
-
   "message_filters": {
     "_comment": "Process patient results only for Phase 1. QC/calibration enabled in future via this flag.",
     "patient_results": true,

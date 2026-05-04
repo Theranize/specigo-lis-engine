@@ -52,25 +52,20 @@ if (!fs.existsSync(logsDir)) {
 require('dotenv').config();
 
 // ---------------------------------------------------------------------------
-// Step 2.5: Read log_level from analyser config BEFORE requiring Winston.
+// Step 2.5: Read log_level from system.config.json BEFORE requiring Winston.
 // All module-level loggers use process.env.LOG_LEVEL, so it must be set
 // before the first require() that loads a Winston-dependent module.
 // .env LOG_LEVEL (if still present) takes precedence over config file.
 // ---------------------------------------------------------------------------
 {
-  const configArgIdx    = process.argv.indexOf('--config');
-  const earlyConfigPath = (
-    (configArgIdx !== -1 && process.argv[configArgIdx + 1]) ||
-    process.env.CONFIG_FILE                                  ||
-    path.join(process.cwd(), 'config', 'analysers', 'access2_config.json')
-  );
+  const systemConfigPath = path.join(process.cwd(), 'config', 'system.config.json');
   try {
-    const earlyConfig = JSON.parse(fs.readFileSync(path.resolve(earlyConfigPath), 'utf8'));
-    if (earlyConfig.logger && earlyConfig.logger.log_level && !process.env.LOG_LEVEL) {
-      process.env.LOG_LEVEL = earlyConfig.logger.log_level;
+    const systemConfig = JSON.parse(fs.readFileSync(systemConfigPath, 'utf8'));
+    if (systemConfig.logger && systemConfig.logger.log_level && !process.env.LOG_LEVEL) {
+      process.env.LOG_LEVEL = systemConfig.logger.log_level;
     }
   } catch {
-    // If config is unreadable here the engine will fail properly in _loadConfig().
+    // If config is unreadable here the engine will fail properly during load.
   }
 }
 

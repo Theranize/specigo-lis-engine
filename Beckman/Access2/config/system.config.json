@@ -1,0 +1,22 @@
+{
+  "database": {
+    "_comment": "MySQL database connection settings",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "admin",
+    "password": "admin",
+    "database": "lis_db",
+    "poolSize": 5
+  },
+
+  "lims_api": {
+    "_comment": "LIMS server REST API - results are pushed here after local DB write.",
+    "base_url": "http://127.0.0.1",
+    "api_key": "86620e12113775c39f3a29a795e494e4"
+  },
+
+  "logger": {
+    "_comment": "Winston log level: error | warn | info | debug. Use 'info' in production. Use 'debug' during site commissioning at Lab.",
+    "log_level": "debug"
+  }
+}

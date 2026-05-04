@@ -91,6 +91,7 @@ class IntegrationEngine {
 
     this._configFilePath = configFilePath;
     this._config         = null;
+    this._systemConfig   = null;
     this._dbPool         = null;
 
     this._serialManager  = null;
@@ -263,6 +264,21 @@ class IntegrationEngine {
       port    : config.connection.port
     });
 
+    // Load system config (database, lims_api, logger)
+    const systemConfigPath = path.join(process.cwd(), 'config', 'system.config.json');
+    if (fs.existsSync(systemConfigPath)) {
+      try {
+        this._systemConfig = JSON.parse(fs.readFileSync(systemConfigPath, 'utf8'));
+        logger.info('System config loaded', { path: systemConfigPath });
+      } catch (err) {
+        throw new Error(`Failed to parse system config: ${err.message}`);
+      }
+    } else {
+      logger.warn('system.config.json not found - falling back to environment variables', {
+        path: systemConfigPath
+      });
+    }
+
     return config;
   }
 
@@ -271,16 +287,17 @@ class IntegrationEngine {
   // ---------------------------------------------------------------------------
 
   async _createDbPool() {
-    const host     = '127.0.0.1';
-    const port     = 3306;
-    const user     = 'admin';
-    const password = 'admin';
-    const poolSize = 5;
-    const database = 'lis_db';
+    const db       = (this._systemConfig && this._systemConfig.database) || {};
+    const host     = db.host     || process.env.DB_HOST                  || '';
+    const port     = db.port     || parseInt(process.env.DB_PORT     || '3306', 10);
+    const user     = db.user     || process.env.DB_USER                  || '';
+    const password = db.password || process.env.DB_PASSWORD              || '';
+    const database = db.database || process.env.DB_NAME                  || '';
+    const poolSize = db.poolSize || parseInt(process.env.DB_POOL_SIZE || '5', 10);
 
-    if (!host || !user || !password) {
+    if (!host || !user || !password || !database) {
       throw new Error(
-        'Database credentials missing. Set DB_HOST, DB_USER, DB_PASSWORD in environment.'
+        'Database credentials missing. Set in config/system.config.json or environment variables (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME).'
       );
     }
 
@@ -494,7 +511,7 @@ class IntegrationEngine {
       analyzerUid : cfg.analyzer_uid,
       analyzerCode: 'ACCESS2',
       labUid      : cfg.lab_uid,
-      limsApi     : cfg.lims_api || null
+      limsApi     : (this._systemConfig && this._systemConfig.lims_api) || null
     });
 
     logger.info('ParameterMapper and ResultWriter initialised - engine fully operational');
