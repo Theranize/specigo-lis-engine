@@ -13,7 +13,7 @@
  *   2. Load environment variables from .env via dotenv.
  *   3. Resolve the analyser config file path (from CLI arg or default).
  *   4. Construct and start IntegrationEngine.
- *   5. Start IntegrationAPI (REST HTTP server).
+ *   5. Start the local control panel HTTP server.
  *   6. Log the startup banner.
  *
  * Config file resolution order:
@@ -30,7 +30,7 @@
  *   DB_POOL_SIZE   - Connection pool size (default 5)
  *   CONFIG_FILE    - Path to analyser config JSON (optional)
  *   LOG_LEVEL      - Winston log level (default 'debug')
- *   API_PORT       - REST API port (default 3002)
+ *   PANEL_PORT     - Control panel HTTP port (default 3003)
  */
 
 'use strict';
@@ -75,7 +75,6 @@ require('dotenv').config();
 const winston           = require('winston');
 require('winston-daily-rotate-file');
 const IntegrationEngine = require('./src/engine/IntegrationEngine');
-const IntegrationAPI    = require('./IntegrationAPI');
 const PanelServer       = require('./src/panel/PanelServer');
 
 // ---------------------------------------------------------------------------
@@ -159,7 +158,7 @@ logger.info('Starting engine', {
 });
 
 // ---------------------------------------------------------------------------
-// Step 6: Construct and start the engine + API
+// Step 6: Construct and start the engine
 // ---------------------------------------------------------------------------
 
 async function main() {
@@ -174,21 +173,6 @@ async function main() {
       stack: err.stack
     });
     process.exit(1);
-  }
-
-  // Start REST API (port 3002) - always start, engine provides getStatus() even before hardware connects.
-  try {
-    const api = new IntegrationAPI({
-      engine,
-      dbPool: null,  // pool not ready yet - IntegrationAPI handles this gracefully
-      port  : parseInt(process.env.API_PORT || '3002', 10)
-    });
-    await api.start();
-    logger.info('REST API started', { port: process.env.API_PORT || '3002' });
-  } catch (err) {
-    logger.warn('IntegrationAPI failed to start - continuing without REST API', {
-      error: err.message
-    });
   }
 
   // Start control panel (port 3003) - always start regardless of hardware state.

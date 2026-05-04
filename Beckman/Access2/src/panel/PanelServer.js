@@ -5,7 +5,7 @@
  * Serves the web-based control panel UI and exposes JSON API endpoints
  * consumed exclusively by that UI.
  *
- * Runs on PANEL_PORT (default 3003), separate from IntegrationAPI (3002).
+ * Runs on PANEL_PORT (default 3003).
  * Binds to 127.0.0.1 only - not exposed to the network.
  *
  * Routes:
@@ -76,7 +76,7 @@ class PanelServer {
     if (!engine) throw new Error('PanelServer: engine is required');
 
     this._engine = engine;
-    this._port   = port || parseInt(process.env.PANEL_PORT || '3003', 10);
+    this._port   = port || parseInt(process.env.PANEL_PORT || '1000', 10);
     this._server = null;
     this._app    = null;
   }

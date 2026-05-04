@@ -9,7 +9,7 @@
  *      ParameterMapper, and ResultWriter.
  *   4. Wires all inter-module events together.
  *   5. Manages the full connection lifecycle: start, stop, reconnect.
- *   6. Exposes getStatus() consumed by the REST API (IntegrationAPI.js).
+ *   6. Exposes getStatus() consumed by the local control panel.
  *   7. Handles graceful shutdown on SIGTERM / SIGINT for Windows Service.
  *
  * Called from index.js as:
