@@ -23,44 +23,12 @@
 
 const express = require('express');
 const path    = require('path');
-const winston = require('winston');
-require('winston-daily-rotate-file');
 
 const engineRoutes  = require('./routes/engineRoutes');
 const resultsRoutes = require('./routes/resultsRoutes');
+const logsRoutes    = require('./routes/logsRoutes');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [PANEL]  [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname      : 'logs',
-      filename     : 'combined-%DATE%.log',
-      datePattern  : 'YYYY-MM-DD',
-      maxFiles     : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [PANEL]  ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('PANEL');
 
 // ---------------------------------------------------------------------------
 // PanelServer class
@@ -104,6 +72,7 @@ class PanelServer {
     // API routes
     this._app.use('/api/engine',  engineRoutes(this._engine));
     this._app.use('/api/results', resultsRoutes(this._engine));
+    this._app.use('/api/logs',    logsRoutes());
 
     // 404
     this._app.use((req, res) => {

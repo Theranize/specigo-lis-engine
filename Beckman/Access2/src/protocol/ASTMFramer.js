@@ -55,8 +55,8 @@
 'use strict';
 
 const { EventEmitter } = require('events');
-const winston          = require('winston');
-require('winston-daily-rotate-file');
+
+const logger = require('../logger').createLogger('FRAMER');
 
 // ---------------------------------------------------------------------------
 // Protocol constants - per ASTM E1394 specification
@@ -86,47 +86,6 @@ const STATE = Object.freeze({
   CHECKSUM2   : 'CHECKSUM2',    // Received first CS byte, waiting for second CS byte
   AWAIT_CR    : 'AWAIT_CR',     // Received both CS bytes, waiting for CR
   AWAIT_LF    : 'AWAIT_LF'      // Received CR, waiting for LF
-});
-
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [FRAMER] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [FRAMER] ${level}: ${message}`
-        )
-      )
-    })
-  ]
 });
 
 // ---------------------------------------------------------------------------

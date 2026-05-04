@@ -24,49 +24,8 @@
 const http    = require('http');
 const https   = require('https');
 const { URL } = require('url');
-const winston = require('winston');
-require('winston-daily-rotate-file');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [WRITER] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [WRITER] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('WRITER');
 
 // ---------------------------------------------------------------------------
 // ResultWriter class
@@ -98,6 +57,24 @@ class ResultWriter {
       labUid      : this._labUid,
       limsApiUrl  : this._limsApi ? this._limsApi.base_url : 'not configured'
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - value sanitization
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Converts empty / whitespace / undefined values to NULL.
+   * Keeps 0 and false intact.
+   */
+  _nullIfEmpty(v) {
+    if (v === undefined || v === null) return null;
+
+    if (typeof v === 'string' && v.trim() === '') {
+      return null;
+    }
+
+    return v;
   }
 
   // ---------------------------------------------------------------------------
@@ -142,18 +119,18 @@ class ResultWriter {
       const received = this._parseAstmDatetime(r.result_datetime);
 
       params.push(
-        r.lab_uid        ?? this._labUid,
-        r.analyzer_uid   ?? this._analyzerUid,
-        r.barcode_uid    ?? null,
-        r.parameter_code ?? null,
-        r.unit           ?? null,
-        r.value          ?? null,
-        r.flag           ?? null,
-        r.patient_name   ?? null,
+        this._nullIfEmpty(r.lab_uid)        ?? this._labUid,
+        this._nullIfEmpty(r.analyzer_uid)   ?? this._analyzerUid,
+        this._nullIfEmpty(r.barcode_uid),
+        this._nullIfEmpty(r.parameter_code),
+        this._nullIfEmpty(r.unit),
+        this._nullIfEmpty(r.value),
+        this._nullIfEmpty(r.flag),
+        this._nullIfEmpty(r.patient_name),
         age,
         ageType,
         gender,
-        0,           // status: 0 = new / not yet processed by LIMS
+        0,
         received
       );
     }
@@ -198,23 +175,29 @@ class ResultWriter {
       lab_uid     : this._labUid,
       analyzer_uid: this._analyzerUid,
       api_key     : this._limsApi.api_key || '',
-      data        : results.map((r) => {
+      data: results.map((r) => {
         const age     = r.age_year !== null && r.age_year !== undefined
           ? r.age_year
           : (r.age_month !== null && r.age_month !== undefined ? r.age_month : null);
+
         const ageType = AGE_TYPE_MAP[r.age_type] || null;
+
         return {
-          lab_uid       : r.lab_uid        ?? this._labUid,
-          analyzer_uid  : r.analyzer_uid   ?? this._analyzerUid,
-          barcode_uid   : r.barcode_uid    ?? null,
-          parameter_code: r.parameter_code ?? null,
-          value         : r.value !== null && r.value !== undefined ? String(r.value) : null,
-          flag          : r.flag           ?? null,
-          unit          : r.unit           ?? null,
-          patient_name  : r.patient_name   ?? null,
+          lab_uid       : this._nullIfEmpty(r.lab_uid)        ?? this._labUid,
+          analyzer_uid  : this._nullIfEmpty(r.analyzer_uid)   ?? this._analyzerUid,
+          barcode_uid   : this._nullIfEmpty(r.barcode_uid),
+          parameter_code: this._nullIfEmpty(r.parameter_code),
+          value         : this._nullIfEmpty(
+                            r.value !== null && r.value !== undefined
+                              ? String(r.value)
+                              : null
+                          ),
+          flag          : this._nullIfEmpty(r.flag),
+          unit          : this._nullIfEmpty(r.unit),
+          patient_name  : this._nullIfEmpty(r.patient_name),
           age           : age,
           age_type      : ageType,
-          gender        : r.gender         ?? null,
+          gender        : this._nullIfEmpty(r.gender),
           status        : STATUS_MAP[r.result_status] || 'final'
         };
       })

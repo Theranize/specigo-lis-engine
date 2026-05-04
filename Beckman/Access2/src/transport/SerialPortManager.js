@@ -27,49 +27,8 @@
 
 const { EventEmitter } = require('events');
 const { SerialPort }   = require('serialport');
-const winston          = require('winston');
-require('winston-daily-rotate-file');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [SERIAL] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [SERIAL] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('SERIAL');
 
 // ---------------------------------------------------------------------------
 // Reconnection policy constants
@@ -112,7 +71,12 @@ class SerialPortManager extends EventEmitter {
     this._isReconnecting   = false;
     this._reconnectAttempt = 0;
     this._reconnectTimer   = null;
-    this._destroyed        = false;
+    // _running mirrors the engine's "should we be active?" semantics.
+    // It is set to true on connect() and back to false on disconnect()/
+    // destroy(). Internal reconnect logic only fires while _running is
+    // true, which lets the engine cleanly tear the manager down without
+    // racing with a stale reconnect.
+    this._running          = false;
 
     this.stats = {
       bytesReceived    : 0,
@@ -139,32 +103,34 @@ class SerialPortManager extends EventEmitter {
   // ---------------------------------------------------------------------------
 
   async connect() {
-    if (this._destroyed) {
-      throw new Error('SerialPortManager has been destroyed. Create a new instance.');
-    }
     if (this._isOpen) {
       logger.warn('connect() called but port is already open', { port: this._config.port });
       return;
     }
-    if (this._isReconnecting) {
-      logger.warn('connect() called while reconnect loop is active - ignoring', {
+    // If an internal reconnect timer is pending, cancel it and let this
+    // explicit connect() attempt take over. This prevents a caller's
+    // retry loop from seeing a silent success while the port is not
+    // actually open.
+    if (this._isReconnecting || this._reconnectTimer) {
+      logger.info('connect() taking over from pending internal reconnect', {
         port: this._config.port
       });
-      return;
+      this._cancelReconnectTimer();
     }
+    this._running = true;
     logger.info('Opening serial port', { port: this._config.port, baudRate: this._config.baudRate });
     await this._openPort();
   }
 
   async disconnect() {
-    this._destroyed = true;
+    this._running = false;
     this._cancelReconnectTimer();
     await this._closePort('manual disconnect');
     logger.info('Serial port disconnected by application request', { port: this._config.port });
   }
 
   async destroy() {
-    this._destroyed = true;
+    this._running = false;
     this._cancelReconnectTimer();
     if (this._port && this._isOpen) {
       await this._closePort('destroy');
@@ -250,7 +216,7 @@ class SerialPortManager extends EventEmitter {
             error: err.message
           });
           this.emit('disconnected', `close error: ${err.message}`);
-          if (!this._destroyed && wasOpen) {
+          if (this._running && wasOpen) {
             this._scheduleReconnect();
           }
         } else {
@@ -300,7 +266,7 @@ class SerialPortManager extends EventEmitter {
   // ---------------------------------------------------------------------------
 
   _scheduleReconnect() {
-    if (this._destroyed || this._isReconnecting) return;
+    if (!this._running || this._isReconnecting) return;
 
     this._isReconnecting = true;
     this._reconnectAttempt++;
@@ -323,7 +289,7 @@ class SerialPortManager extends EventEmitter {
 
     this._reconnectTimer = setTimeout(async () => {
       this._reconnectTimer = null;
-      if (this._destroyed) return;
+      if (!this._running) return;
 
       logger.info('Attempting to reconnect', {
         port   : this._config.port,

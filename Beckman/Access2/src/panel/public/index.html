@@ -489,6 +489,20 @@
     }
     .btn-primary:not(:disabled):hover { background: var(--c-brand-deep); border-color: var(--c-brand-deep); }
 
+    /* Two-stage confirm state — warning-coloured to make the pending
+       confirmation visually obvious. */
+    .btn.is-confirming {
+      background: #b45309 !important;
+      border-color: #b45309 !important;
+      color: #ffffff !important;
+      animation: confirmPulse 1.2s ease-in-out infinite;
+    }
+    .btn.is-confirming:hover { background: #92400e !important; border-color: #92400e !important; }
+    @keyframes confirmPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.45); }
+      50%      { box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.10); }
+    }
+
     .btn-success { background: #047857; color: #fff; border-color: #047857; }
     .btn-success:not(:disabled):hover { background: #036549; border-color: #036549; }
 
@@ -861,6 +875,80 @@
     ----------------------------------------------------------------- */
     .table-scroll { overflow-x: auto; }
 
+    /* -----------------------------------------------------------------
+       Log viewer
+    ----------------------------------------------------------------- */
+    .log-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--c-border);
+      gap: 12px;
+    }
+    .log-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--c-text);
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono);
+    }
+    .log-title svg { width: 14px; height: 14px; color: var(--c-text-muted); }
+    .log-count {
+      font-size: 12px;
+      color: var(--c-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .log-viewer {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      background: #0b1220;
+      color: #cbd5e1;
+      padding: 12px 14px;
+      height: calc(100vh - 320px);
+      min-height: 360px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+    .log-viewer::-webkit-scrollbar { width: 10px; height: 10px; }
+    .log-viewer::-webkit-scrollbar-track { background: #0b1220; }
+    .log-viewer::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border: 2px solid #0b1220;
+      border-radius: 999px;
+    }
+    .log-viewer::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    .log-line {
+      white-space: pre;
+      padding: 1px 0;
+      color: #cbd5e1;
+    }
+    .log-line.lvl-error { color: #fca5a5; }
+    .log-line.lvl-warn  { color: #fcd34d; }
+    .log-line.lvl-info  { color: #93c5fd; }
+    .log-line.lvl-debug { color: #94a3b8; }
+
+    .auto-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--c-text-muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 0 8px;
+    }
+    .auto-toggle input { accent-color: var(--c-accent); cursor: pointer; }
+    .auto-toggle:hover { color: var(--c-text); }
+
     /* Custom scrollbar (content area only) */
     .content::-webkit-scrollbar { width: 10px; }
     .content::-webkit-scrollbar-track { background: transparent; }
@@ -915,6 +1003,16 @@
           <line x1="9" y1="21" x2="9" y2="9" />
         </svg>
         Results
+      </div>
+      <div class="nav-item" id="tab-logs-btn" onclick="openLogsTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="9"  y1="13" x2="15" y2="13" />
+          <line x1="9"  y1="17" x2="15" y2="17" />
+          <line x1="9"  y1="9"  x2="11" y2="9" />
+        </svg>
+        Logs
       </div>
     </nav>
 
@@ -1110,6 +1208,86 @@
 
     </div>
 
+    <!-- ----------------------------------------------------------------
+         Logs
+    ----------------------------------------------------------------- -->
+    <div class="tab-pane" id="tab-logs">
+
+      <div class="filter-bar">
+        <div class="field">
+          <label for="lLevel">Level</label>
+          <select id="lLevel">
+            <option value="">All levels</option>
+            <option value="ERROR">Error</option>
+            <option value="WARN">Warn</option>
+            <option value="INFO">Info</option>
+            <option value="DEBUG">Debug</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lModule">Module</label>
+          <select id="lModule">
+            <option value="">All modules</option>
+            <option value="INDEX">Index</option>
+            <option value="ENGINE">Engine</option>
+            <option value="SERIAL">Serial</option>
+            <option value="FRAMER">Framer</option>
+            <option value="ACCESS2">Parser</option>
+            <option value="MAPPER">Mapper</option>
+            <option value="WRITER">Writer</option>
+            <option value="PANEL">Panel</option>
+          </select>
+        </div>
+        <div class="field" style="flex: 1; min-width: 200px;">
+          <label for="lSearch">Search</label>
+          <input type="text" id="lSearch" placeholder="Match log line text..." autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="lLimit">Lines</label>
+          <select id="lLimit">
+            <option value="200">200</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <label class="auto-toggle">
+            <input type="checkbox" id="lAuto" checked />
+            <span>Auto-refresh</span>
+          </label>
+          <button class="btn btn-primary" onclick="loadLogs()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 15.2-6.5L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-15.2 6.5L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="log-card">
+        <div class="log-head">
+          <span class="log-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span id="lFile">combined-<today>.log</span>
+          </span>
+          <span class="log-count" id="lCount">—</span>
+        </div>
+        <div class="log-viewer" id="lViewer">
+          <div class="placeholder" style="color: #94a3b8;">
+            <div class="placeholder-text">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </main>
 </div>
 <!-- end app-shell -->
@@ -1177,6 +1355,10 @@ const PAGE_META = {
   results: {
     title: 'Results',
     sub:   'Browse, filter, and inspect persisted analyser results'
+  },
+  logs: {
+    title: 'Logs',
+    sub:   "Live tail of today's combined log file"
   }
 };
 
@@ -1193,6 +1375,8 @@ function switchTab(name, el) {
     document.getElementById('pageTitle').textContent = meta.title;
     document.getElementById('pageSub').textContent   = meta.sub;
   }
+  // Stop log polling when leaving the Logs tab to avoid wasted requests.
+  if (name !== 'logs') stopLogsPolling();
 }
 
 /* -----------------------------------------------------------------
@@ -1319,6 +1503,17 @@ function openResultsTab(el) {
   document.getElementById('fFlag').value    = 'ALL';
   switchTab('results', el);
   loadResults(1);
+  stopLogsPolling();
+}
+
+/* -----------------------------------------------------------------
+   Sidebar handler for the Logs tab.
+   Loads today's combined log file and starts auto-refresh polling.
+----------------------------------------------------------------- */
+function openLogsTab(el) {
+  switchTab('logs', el);
+  loadLogs();
+  startLogsPolling();
 }
 
 /* -----------------------------------------------------------------
@@ -1502,6 +1697,105 @@ function clearFilters() {
 }
 
 /* -----------------------------------------------------------------
+   Logs viewer — polls today's combined log file every few seconds
+   and streams the tail into a dark terminal-style panel.
+----------------------------------------------------------------- */
+const LOGS_POLL_MS = 3000;
+let logsPollTimer  = null;
+let logsLoading    = false;
+
+async function loadLogs() {
+  if (logsLoading) return;
+  logsLoading = true;
+
+  const params = new URLSearchParams();
+  const level  = document.getElementById('lLevel').value;
+  const mod    = document.getElementById('lModule').value;
+  const search = document.getElementById('lSearch').value.trim();
+  const limit  = document.getElementById('lLimit').value;
+
+  if (level)  params.set('level',  level);
+  if (mod)    params.set('module', mod);
+  if (search) params.set('search', search);
+  params.set('limit', limit);
+
+  const viewer = document.getElementById('lViewer');
+
+  try {
+    const res  = await fetch('/api/logs/today?' + params.toString());
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Request failed');
+    renderLogs(json.data);
+  } catch (err) {
+    viewer.innerHTML =
+      '<div class="placeholder" style="color:#fca5a5;">' +
+        '<div class="placeholder-text">Failed to load logs: ' + escapeHtml(err.message) + '</div>' +
+      '</div>';
+  } finally {
+    logsLoading = false;
+  }
+}
+
+function renderLogs(data) {
+  const viewer = document.getElementById('lViewer');
+  document.getElementById('lFile').textContent = data.file || ('combined-' + data.date + '.log');
+
+  // Preserve scroll-to-bottom behaviour: if user is already at the bottom
+  // (within 60 px), keep them pinned to the latest line after refresh.
+  const pinToBottom = viewer.scrollTop + viewer.clientHeight >= viewer.scrollHeight - 60;
+
+  if (!data.lines || data.lines.length === 0) {
+    viewer.innerHTML =
+      '<div class="placeholder" style="color:#94a3b8;">' +
+        '<div class="placeholder-text">' + escapeHtml(data.message || 'No log lines match the current filters.') + '</div>' +
+      '</div>';
+    document.getElementById('lCount').textContent = '0 lines';
+    return;
+  }
+
+  const html = data.lines.map((line) => {
+    const cls = detectLogLevel(line);
+    return '<div class="log-line' + (cls ? ' lvl-' + cls : '') + '">' + escapeHtml(line) + '</div>';
+  }).join('');
+  viewer.innerHTML = html;
+
+  if (pinToBottom) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+
+  const matched  = data.totalMatched  != null ? data.totalMatched  : data.lines.length;
+  const returned = data.totalReturned != null ? data.totalReturned : data.lines.length;
+  const suffix   = matched > returned ? ' (showing last ' + returned + ')' : '';
+  document.getElementById('lCount').textContent =
+    matched.toLocaleString() + ' line' + (matched !== 1 ? 's' : '') + suffix +
+    (data.truncated ? ' · file truncated' : '');
+}
+
+function detectLogLevel(line) {
+  if (line.indexOf('[ERROR]') !== -1) return 'error';
+  if (line.indexOf('[WARN]')  !== -1) return 'warn';
+  if (line.indexOf('[INFO]')  !== -1) return 'info';
+  if (line.indexOf('[DEBUG]') !== -1) return 'debug';
+  return '';
+}
+
+function startLogsPolling() {
+  if (logsPollTimer !== null) return;
+  logsPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible')          return;
+    if (!document.getElementById('lAuto').checked)       return;
+    if (!document.getElementById('tab-logs').classList.contains('active')) return;
+    loadLogs();
+  }, LOGS_POLL_MS);
+}
+
+function stopLogsPolling() {
+  if (logsPollTimer === null) return;
+  clearInterval(logsPollTimer);
+  logsPollTimer = null;
+}
+
+/* -----------------------------------------------------------------
    Sample detail modal
 ----------------------------------------------------------------- */
 let currentSampleBarcode = null;
@@ -1512,10 +1806,11 @@ async function showSample(barcode) {
   document.getElementById('mBody').innerHTML =
     '<div class="placeholder"><div class="spinner spinner-lg" style="display:inline-block;"></div></div>';
 
-  // Disable Send-to-LIMS until results are confirmed loaded.
+  // Disable Send-to-LIMS until results are confirmed loaded, and clear
+  // any leftover confirmation state from a previous sample.
+  resetSendLimsButton();
   const sendBtn = document.getElementById('btnSendLims');
   sendBtn.disabled = true;
-  document.getElementById('btnSendLimsLabel').textContent = 'Send to LIMS';
 
   document.getElementById('overlay').classList.add('is-open');
 
@@ -1588,6 +1883,7 @@ async function showSample(barcode) {
 function closeModal() {
   document.getElementById('overlay').classList.remove('is-open');
   currentSampleBarcode = null;
+  resetSendLimsButton();
 }
 
 function onOverlayClick(e) {
@@ -1597,7 +1893,28 @@ function onOverlayClick(e) {
 /* -----------------------------------------------------------------
    Push the currently-open sample to the configured LIMS API.
    Reads lims_api credentials server-side from system.config.json.
+
+   Uses a two-stage confirmation pattern to prevent accidental double-
+   sends. First click puts the button into a "Click again to confirm"
+   state for 3 seconds; only the second click actually fires the API
+   call. The state auto-resets if not confirmed in time.
 ----------------------------------------------------------------- */
+const SEND_CONFIRM_WINDOW_MS = 3000;
+let sendConfirmTimer    = null;
+let sendConfirmArmed    = false;
+
+function resetSendLimsButton() {
+  const btn   = document.getElementById('btnSendLims');
+  const label = document.getElementById('btnSendLimsLabel');
+  if (sendConfirmTimer) {
+    clearTimeout(sendConfirmTimer);
+    sendConfirmTimer = null;
+  }
+  sendConfirmArmed = false;
+  btn.classList.remove('is-confirming');
+  label.textContent = 'Send to LIMS';
+}
+
 async function sendCurrentSampleToLims() {
   if (!currentSampleBarcode) {
     toast('No sample selected.', 'err');
@@ -1606,9 +1923,27 @@ async function sendCurrentSampleToLims() {
 
   const btn   = document.getElementById('btnSendLims');
   const label = document.getElementById('btnSendLimsLabel');
-  const originalLabel = label.textContent;
 
-  btn.disabled    = true;
+  // Stage 1: arm the button. Wait for a deliberate second click.
+  if (!sendConfirmArmed) {
+    sendConfirmArmed = true;
+    btn.classList.add('is-confirming');
+    label.textContent = 'Click again to confirm';
+    sendConfirmTimer = setTimeout(() => {
+      resetSendLimsButton();
+    }, SEND_CONFIRM_WINDOW_MS);
+    return;
+  }
+
+  // Stage 2: confirmed - clear the arm state and actually send.
+  if (sendConfirmTimer) {
+    clearTimeout(sendConfirmTimer);
+    sendConfirmTimer = null;
+  }
+  sendConfirmArmed = false;
+  btn.classList.remove('is-confirming');
+
+  btn.disabled      = true;
   label.textContent = 'Sending…';
 
   try {
@@ -1624,12 +1959,12 @@ async function sendCurrentSampleToLims() {
     // Keep the button disabled briefly so an over-eager double-click is
     // suppressed, then restore the original label.
     setTimeout(() => {
-      label.textContent = originalLabel;
+      label.textContent = 'Send to LIMS';
       btn.disabled = false;
     }, 1500);
   } catch (err) {
     toast(err.message, 'err', 5000);
-    label.textContent = originalLabel;
+    label.textContent = 'Send to LIMS';
     btn.disabled = false;
   }
 }
@@ -1705,11 +2040,42 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* -----------------------------------------------------------------
-   Boot
+   Boot — engine status polling that pauses while the tab is hidden.
 ----------------------------------------------------------------- */
+const STATUS_POLL_MS = 5000;
+let statusPollTimer  = null;
+
+function startStatusPolling() {
+  if (statusPollTimer !== null) return;
+  statusPollTimer = setInterval(fetchStatus, STATUS_POLL_MS);
+}
+
+function stopStatusPolling() {
+  if (statusPollTimer === null) return;
+  clearInterval(statusPollTimer);
+  statusPollTimer = null;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Refresh immediately on return so the panel does not show stale data
+    // for up to one full poll interval.
+    fetchStatus();
+    startStatusPolling();
+    // If the user left the panel parked on the Logs tab, refresh it too.
+    if (document.getElementById('tab-logs').classList.contains('active')) {
+      loadLogs();
+    }
+  } else {
+    stopStatusPolling();
+  }
+});
+
 (async () => {
   await fetchStatus();
-  setInterval(fetchStatus, 5000);
+  if (document.visibilityState === 'visible') {
+    startStatusPolling();
+  }
 })();
 </script>
 </body>

@@ -19,12 +19,11 @@
 const express = require('express');
 
 // ---------------------------------------------------------------------------
-// Helper - get active DB pool from engine
+// Helper - thin alias around the engine's public accessor so each route
+// reads consistently. Throws a friendly message when DB is not ready.
 // ---------------------------------------------------------------------------
 function getPool(engine) {
-  const pool = engine._dbPool;
-  if (!pool) throw new Error('Database not yet connected. Please wait a moment and retry.');
-  return pool;
+  return engine.getDbPool();
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +187,7 @@ module.exports = function resultsRoutes(engine) {
   r.post('/barcode/:id/send-to-lims', async (req, res) => {
     try {
       const pool    = getPool(engine);
-      const limsApi = engine._systemConfig && engine._systemConfig.lims_api;
+      const limsApi = engine.getLimsApiConfig();
 
       if (!limsApi || !limsApi.base_url) {
         return res.status(400).json({

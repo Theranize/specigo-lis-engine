@@ -72,51 +72,11 @@ require('dotenv').config();
 // ---------------------------------------------------------------------------
 // Step 3: Now safe to require modules that use Winston and process.env
 // ---------------------------------------------------------------------------
-const winston           = require('winston');
-require('winston-daily-rotate-file');
+const { createLogger } = require('./src/logger');
 const IntegrationEngine = require('./src/engine/IntegrationEngine');
 const PanelServer       = require('./src/panel/PanelServer');
 
-// ---------------------------------------------------------------------------
-// Bootstrap logger (used only in index.js for startup/shutdown messages)
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [INDEX]  [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : logsDir,
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : logsDir,
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [INDEX]  ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = createLogger('INDEX');
 
 // ---------------------------------------------------------------------------
 // Step 4: Resolve config file path

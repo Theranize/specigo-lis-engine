@@ -50,49 +50,8 @@
 'use strict';
 
 const { EventEmitter } = require('events');
-const winston          = require('winston');
-require('winston-daily-rotate-file');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [ACCESS2] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [ACCESS2] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('ACCESS2');
 
 // ---------------------------------------------------------------------------
 // ASTM field / component delimiter constants

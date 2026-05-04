@@ -1,5 +1,73 @@
-node_modules
-logs/serial-combined.log
-logs/serial-error.log
-logs/simulator.log
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ---------------------------------------------------------------------------
+# Environment files (never commit credentials)
+# ---------------------------------------------------------------------------
 .env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# ---------------------------------------------------------------------------
+# Secrets and credentials
+# ---------------------------------------------------------------------------
+# Site-specific runtime config (DB password + LIMS API key live here).
+# Commit config/system.config.example.json instead.
+config/system.config.json
+
+# TLS / signing material
+*.pfx
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+logs/
+*.log
+socat.log
+
+# ---------------------------------------------------------------------------
+# Database dumps and data exports
+# ---------------------------------------------------------------------------
+# Real / sample data dumps must not be tracked. Schema migrations
+# belong under db/migrations/ as plain CREATE/ALTER statements.
+*.sql
+!db/migrations/*.sql
+
+# ---------------------------------------------------------------------------
+# OS / editor artefacts
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Build / coverage / test output
+# ---------------------------------------------------------------------------
+coverage/
+.nyc_output/
+dist/
+build/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Windows Service installer artefacts (node-windows)
+# ---------------------------------------------------------------------------
+daemon/

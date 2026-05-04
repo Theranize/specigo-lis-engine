@@ -17,6 +17,8 @@
 
   "logger": {
     "_comment": "Winston log level: error | warn | info | debug. Use 'info' in production. Use 'debug' during site commissioning at Lab.",
-    "log_level": "debug"
+    "log_level": "debug",
+    "_retention_comment": "Number of days that daily-rotated log files are kept on disk. Older files are automatically deleted by winston-daily-rotate-file.",
+    "retention_days": 14
   }
 }

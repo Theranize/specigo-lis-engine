@@ -23,11 +23,9 @@
 
 'use strict';
 
-const fs      = require('fs');
-const path    = require('path');
-const mysql   = require('mysql2/promise');
-const winston = require('winston');
-require('winston-daily-rotate-file');
+const fs    = require('fs');
+const path  = require('path');
+const mysql = require('mysql2/promise');
 
 const SerialPortManager = require('../transport/SerialPortManager');
 const ASTMFramer        = require('../protocol/ASTMFramer');
@@ -35,46 +33,7 @@ const Access2Parser     = require('../protocol/Access2Parser');
 const ParameterMapper   = require('../mapping/ParameterMapper');
 const ResultWriter      = require('../db/ResultWriter');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [ENGINE] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'error-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      level       : 'error',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.DailyRotateFile({
-      dirname     : 'logs',
-      filename    : 'combined-%DATE%.log',
-      datePattern : 'YYYY-MM-DD',
-      maxFiles    : '14d',
-      zippedArchive: false
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [ENGINE] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('ENGINE');
 
 // ---------------------------------------------------------------------------
 // IntegrationEngine class
@@ -171,6 +130,12 @@ class IntegrationEngine {
 
     logger.info('IntegrationEngine stopping...');
 
+    // Flip _running first so the background serial / DB retry loops
+    // (`while (this._running)`) exit on their next iteration and do not
+    // race the teardown sequence below by trying to reconnect to a pool
+    // that is about to close.
+    this._running = false;
+
     this._serialRetrying = false;
     if (this._serialRetryTimer) {
       clearTimeout(this._serialRetryTimer);
@@ -198,8 +163,35 @@ class IntegrationEngine {
       logger.info('Database pool closed');
     }
 
-    this._running = false;
     logger.info('IntegrationEngine stopped');
+  }
+
+  /**
+   * Returns the active mysql2 connection pool. Callers (e.g. panel routes)
+   * should use this rather than reaching into `engine._dbPool` directly.
+   *
+   * @throws {Error} when the database has not yet connected. The error
+   *                 message is safe to surface to API clients as-is.
+   * @returns {object} mysql2 promise pool
+   */
+  getDbPool() {
+    if (!this._dbPool || !this._dbReady) {
+      throw new Error('Database not yet connected. Please wait a moment and retry.');
+    }
+    return this._dbPool;
+  }
+
+  /**
+   * Returns the LIMS API config block from system.config.json, or null
+   * when LIMS push is not configured.
+   *
+   * @returns {{ base_url: string, api_key: string }|null}
+   */
+  getLimsApiConfig() {
+    if (this._systemConfig && this._systemConfig.lims_api) {
+      return this._systemConfig.lims_api;
+    }
+    return null;
   }
 
   /**
