@@ -3,11 +3,13 @@
  * SpeciGo LIS Integration Engine - Orchestrator
  *
  * The single entry point that:
- *   1. Reads the analyser config JSON file (access2_config.json).
+ *   1. Reads + validates config files (delegated to ConfigLoader).
  *   2. Creates the mysql2 connection pool to the SpeciGo LIMS database.
  *   3. Instantiates SerialPortManager, ASTMFramer, Access2Parser,
- *      ParameterMapper, and ResultWriter.
- *   4. Wires all inter-module events together.
+ *      ParameterMapper, ResultWriter and wires them together.
+ *   4. Owns the retry / reconnect policy via two ConnectionSupervisor
+ *      instances (one for serial, one for DB). The transport-level
+ *      modules no longer schedule their own reconnects.
  *   5. Manages the full connection lifecycle: start, stop, reconnect.
  *   6. Exposes getStatus() consumed by the local control panel.
  *   7. Handles graceful shutdown on SIGTERM / SIGINT for Windows Service.
@@ -17,23 +19,31 @@
  *   await engine.start();
  *
  * The Beckman Coulter Access 2 uses the ASTM E1394 / LIS2-A2 protocol and
- * pushes results automatically in "Send All Results" mode without requiring
- * host queries from the LIS side.
+ * pushes results automatically in "Send All Results" mode without
+ * requiring host queries from the LIS side.
  */
 
 'use strict';
 
-const fs    = require('fs');
-const path  = require('path');
 const mysql = require('mysql2/promise');
 
-const SerialPortManager = require('../transport/SerialPortManager');
-const ASTMFramer        = require('../protocol/ASTMFramer');
-const Access2Parser     = require('../protocol/Access2Parser');
-const ParameterMapper   = require('../mapping/ParameterMapper');
-const ResultWriter      = require('../db/ResultWriter');
+const SerialPortManager    = require('../transport/SerialPortManager');
+const ASTMFramer           = require('../protocol/ASTMFramer');
+const Access2Parser        = require('../protocol/Access2Parser');
+const ParameterMapper      = require('../mapping/ParameterMapper');
+const ResultWriter         = require('../db/ResultWriter');
+const ConfigLoader         = require('./ConfigLoader');
+const ConnectionSupervisor = require('./ConnectionSupervisor');
 
 const logger = require('../logger').createLogger('ENGINE');
+
+// ---------------------------------------------------------------------------
+// Retry policy constants - same defaults the engine has always used.
+// ---------------------------------------------------------------------------
+const SERIAL_INITIAL_DELAY_MS = 5000;
+const SERIAL_MAX_DELAY_MS     = 60000;
+const DB_INITIAL_DELAY_MS     = 5000;
+const DB_MAX_DELAY_MS         = 60000;
 
 // ---------------------------------------------------------------------------
 // IntegrationEngine class
@@ -41,7 +51,8 @@ const logger = require('../logger').createLogger('ENGINE');
 class IntegrationEngine {
 
   /**
-   * @param {string} configFilePath - Absolute or relative path to analyser JSON config.
+   * @param {string} configFilePath - Absolute or cwd-relative path to the
+   *                                  analyser JSON config.
    */
   constructor(configFilePath) {
     if (!configFilePath) {
@@ -51,7 +62,9 @@ class IntegrationEngine {
     this._configFilePath = configFilePath;
     this._config         = null;
     this._systemConfig   = null;
+
     this._dbPool         = null;
+    this._dbReady        = false;
 
     this._serialManager  = null;
     this._framer         = null;
@@ -59,26 +72,22 @@ class IntegrationEngine {
     this._mapper         = null;
     this._writer         = null;
 
-    this._running        = false;
-    this._startedAt      = null;
+    this._serialSupervisor = null;
+    this._dbSupervisor     = null;
 
-    this._dbReady        = false;
-    this._dbRetrying     = false;
-    this._dbRetryTimer   = null;
-
-    this._serialRetrying = false;
-    this._serialRetryTimer = null;
+    this._running   = false;
+    this._startedAt = null;
 
     this._stats = {
-      resultsReceived  : 0,
-      resultsWritten   : 0,
-      resultsSkipped   : 0,
-      resultsFailed    : 0,
-      sessionsStarted  : 0,
-      sessionsEnded    : 0,
-      transmissions    : 0,
-      parseErrors      : 0,
-      lastResultAt     : null
+      resultsReceived: 0,
+      resultsWritten : 0,
+      resultsSkipped : 0,
+      resultsFailed  : 0,
+      sessionsStarted: 0,
+      sessionsEnded  : 0,
+      transmissions  : 0,
+      parseErrors    : 0,
+      lastResultAt   : null
     };
 
     logger.info('IntegrationEngine constructed', { configFilePath });
@@ -89,7 +98,8 @@ class IntegrationEngine {
   // ---------------------------------------------------------------------------
 
   /**
-   * Start the engine: load config, open DB pool, initialise modules, open serial port.
+   * Start the engine: load config, instantiate modules, wire events,
+   * launch background supervisors for serial + DB connections.
    */
   async start() {
     if (this._running) {
@@ -99,7 +109,10 @@ class IntegrationEngine {
 
     logger.info('IntegrationEngine starting...');
 
-    this._config = this._loadConfig(this._configFilePath);
+    const { analyserConfig, systemConfig } = ConfigLoader.load(this._configFilePath);
+    this._config       = analyserConfig;
+    this._systemConfig = systemConfig;
+
     this._initialiseModules();
     this._registerShutdownHandlers();
 
@@ -112,11 +125,17 @@ class IntegrationEngine {
       port    : this._config.connection.port
     });
 
-    // Both serial port and database connect in the background.
-    // Engine is considered "running" as soon as config is loaded and modules are wired.
-    // This ensures the control panel and REST API are always accessible.
-    this._connectSerialWithRetry();
-    this._connectDbWithRetry();
+    this._buildSupervisors();
+
+    // Both supervisors run in the background. The control panel and any
+    // status callers see "running" immediately, even before connections
+    // are established.
+    this._serialSupervisor.run().catch((err) => {
+      logger.error('Serial supervisor crashed', { error: err.message });
+    });
+    this._dbSupervisor.run().catch((err) => {
+      logger.error('Database supervisor crashed', { error: err.message });
+    });
   }
 
   /**
@@ -130,48 +149,41 @@ class IntegrationEngine {
 
     logger.info('IntegrationEngine stopping...');
 
-    // Flip _running first so the background serial / DB retry loops
-    // (`while (this._running)`) exit on their next iteration and do not
-    // race the teardown sequence below by trying to reconnect to a pool
-    // that is about to close.
+    // Flip _running first so any in-flight retry sleep wakes up to a
+    // false flag and exits cleanly.
     this._running = false;
 
-    this._serialRetrying = false;
-    if (this._serialRetryTimer) {
-      clearTimeout(this._serialRetryTimer);
-      this._serialRetryTimer = null;
-    }
-
-    this._dbRetrying = false;
-    if (this._dbRetryTimer) {
-      clearTimeout(this._dbRetryTimer);
-      this._dbRetryTimer = null;
-    }
+    if (this._serialSupervisor) this._serialSupervisor.stop();
+    if (this._dbSupervisor)     this._dbSupervisor.stop();
 
     if (this._serialManager) {
-      await this._serialManager.disconnect();
+      try {
+        await this._serialManager.disconnect();
+      } catch (err) {
+        logger.warn('Error during serial port disconnect', { error: err.message });
+      }
     }
 
-    if (this._framer) {
-      this._framer.reset();
-    }
+    if (this._framer) this._framer.reset();
 
     if (this._dbPool) {
-      await this._dbPool.end();
+      try {
+        await this._dbPool.end();
+        logger.info('Database pool closed');
+      } catch (err) {
+        logger.warn('Error closing database pool', { error: err.message });
+      }
       this._dbPool  = null;
       this._dbReady = false;
-      logger.info('Database pool closed');
     }
 
     logger.info('IntegrationEngine stopped');
   }
 
   /**
-   * Returns the active mysql2 connection pool. Callers (e.g. panel routes)
-   * should use this rather than reaching into `engine._dbPool` directly.
+   * Returns the active mysql2 connection pool.
    *
-   * @throws {Error} when the database has not yet connected. The error
-   *                 message is safe to surface to API clients as-is.
+   * @throws {Error} when the database has not yet connected.
    * @returns {object} mysql2 promise pool
    */
   getDbPool() {
@@ -195,94 +207,66 @@ class IntegrationEngine {
   }
 
   /**
-   * Returns a complete status snapshot for the REST API status endpoint.
+   * Returns a complete status snapshot for the control panel.
    */
   getStatus() {
-    const serialStatus = this._serialManager ? this._serialManager.getStatus() : {};
-    const framerStats  = this._framer        ? this._framer.getStats()         : {};
-    const parserStats  = this._parser        ? this._parser.getStats()         : {};
-    const mapperStats  = this._mapper        ? this._mapper.getStats()         : {};
+    const serialStatus  = this._serialManager ? this._serialManager.getStatus() : {};
+    const framerStats   = this._framer        ? this._framer.getStats()         : {};
+    const parserStats   = this._parser        ? this._parser.getStats()         : {};
+    const mapperStats   = this._mapper        ? this._mapper.getStats()         : {};
+    const serialRetrying = this._serialSupervisor ? this._serialSupervisor.isRetrying() : false;
+    const dbRetrying     = this._dbSupervisor     ? this._dbSupervisor.isRetrying()     : false;
 
     return {
-      running       : this._running,
-      startedAt     : this._startedAt,
-      analyser      : this._config?.model       || null,
-      site          : this._config?.site        || null,
-      labUid        : this._config?.lab_uid     || null,
-      analyzerUid   : this._config?.analyzer_uid|| null,
-      connected       : serialStatus.isOpen         || false,
-      port            : serialStatus.port           || null,
-      baudRate        : serialStatus.baudRate        || null,
-      isReconnecting  : serialStatus.isReconnecting  || false,
-      serialRetrying  : this._serialRetrying         || false,
-      lastByteAt      : serialStatus.stats?.lastByteAt || null,
-      dbReady         : this._dbReady,
-      dbRetrying      : this._dbRetrying,
-      stats         : {
+      running        : this._running,
+      startedAt      : this._startedAt,
+      analyser       : this._config?.model        || null,
+      site           : this._config?.site         || null,
+      labUid         : this._config?.lab_uid      || null,
+      analyzerUid    : this._config?.analyzer_uid || null,
+      connected      : serialStatus.isOpen || false,
+      port           : serialStatus.port           || null,
+      baudRate       : serialStatus.baudRate       || null,
+      isReconnecting : serialRetrying,
+      serialRetrying : serialRetrying,
+      lastByteAt     : serialStatus.stats?.lastByteAt || null,
+      dbReady        : this._dbReady,
+      dbRetrying     : dbRetrying,
+      stats: {
         ...this._stats,
-        serial : serialStatus.stats  || {},
-        framer : framerStats,
-        parser : parserStats,
-        mapper : mapperStats
+        serial: serialStatus.stats || {},
+        framer: framerStats,
+        parser: parserStats,
+        mapper: mapperStats
       }
     };
   }
 
   // ---------------------------------------------------------------------------
-  // Internal - config loading
+  // Internal - supervisors
   // ---------------------------------------------------------------------------
 
-  _loadConfig(filePath) {
-    const absPath = path.resolve(filePath);
-
-    if (!fs.existsSync(absPath)) {
-      throw new Error(`Config file not found: ${absPath}`);
-    }
-
-    let config;
-    try {
-      const raw = fs.readFileSync(absPath, 'utf8');
-      config    = JSON.parse(raw);
-    } catch (err) {
-      throw new Error(`Failed to parse config file ${absPath}: ${err.message}`);
-    }
-
-    const required = ['lab_uid', 'analyzer_uid', 'connection', 'protocol', 'parameter_map'];
-    for (const field of required) {
-      if (!config[field]) {
-        throw new Error(`Config file missing required field: "${field}"`);
-      }
-    }
-
-    const connRequired = ['port', 'baudRate', 'dataBits', 'stopBits', 'parity'];
-    for (const field of connRequired) {
-      if (config.connection[field] === undefined) {
-        throw new Error(`Config connection block missing required field: "${field}"`);
-      }
-    }
-
-    logger.info('Config loaded successfully', {
-      analyser: config.model,
-      site    : config.site,
-      port    : config.connection.port
+  _buildSupervisors() {
+    this._serialSupervisor = new ConnectionSupervisor({
+      name          : 'Serial port',
+      connectFn     : () => this._serialManager.connect(),
+      initialDelayMs: SERIAL_INITIAL_DELAY_MS,
+      maxDelayMs    : SERIAL_MAX_DELAY_MS,
+      logger
     });
 
-    // Load system config (database, lims_api, logger)
-    const systemConfigPath = path.join(process.cwd(), 'config', 'system.config.json');
-    if (fs.existsSync(systemConfigPath)) {
-      try {
-        this._systemConfig = JSON.parse(fs.readFileSync(systemConfigPath, 'utf8'));
-        logger.info('System config loaded', { path: systemConfigPath });
-      } catch (err) {
-        throw new Error(`Failed to parse system config: ${err.message}`);
-      }
-    } else {
-      logger.warn('system.config.json not found - falling back to environment variables', {
-        path: systemConfigPath
-      });
-    }
-
-    return config;
+    this._dbSupervisor = new ConnectionSupervisor({
+      name          : 'Database',
+      connectFn     : async () => {
+        const pool = await this._createDbPool();
+        this._dbPool = pool;
+        this._initialiseDbModules(pool);
+        this._dbReady = true;
+      },
+      initialDelayMs: DB_INITIAL_DELAY_MS,
+      maxDelayMs    : DB_MAX_DELAY_MS,
+      logger
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -310,12 +294,12 @@ class IntegrationEngine {
       user,
       password,
       database,
-      waitForConnections     : true,
-      connectionLimit        : poolSize,
-      queueLimit             : 0,
-      enableKeepAlive        : true,
-      keepAliveInitialDelay  : 0,
-      timezone               : '+00:00'
+      waitForConnections   : true,
+      connectionLimit      : poolSize,
+      queueLimit           : 0,
+      enableKeepAlive      : true,
+      keepAliveInitialDelay: 0,
+      timezone             : '+00:00'
     });
 
     try {
@@ -336,36 +320,36 @@ class IntegrationEngine {
   // ---------------------------------------------------------------------------
 
   /**
-   * Instantiates all five processing modules and wires their events together.
-   * This method contains the complete event graph for the engine.
+   * Instantiates the always-on processing modules and wires their events
+   * together. Database-dependent modules (mapper + writer) are built
+   * later in _initialiseDbModules() once the pool is verified.
    */
   _initialiseModules() {
     const cfg = this._config;
 
     // --- 1. SerialPortManager ---
     this._serialManager = new SerialPortManager({
-      port        : cfg.connection.port,
-      baudRate    : cfg.connection.baudRate,
-      dataBits    : cfg.connection.dataBits,
-      stopBits    : cfg.connection.stopBits,
-      parity      : cfg.connection.parity,
-      analyzerUid : cfg.analyzer_uid,
-      labUid      : cfg.lab_uid,
-      rtscts      : cfg.connection.rtscts,
-      xon         : cfg.connection.xon,
-      xoff        : cfg.connection.xoff,
-      autoOpen    : cfg.connection.autoOpen
+      port       : cfg.connection.port,
+      baudRate   : cfg.connection.baudRate,
+      dataBits   : cfg.connection.dataBits,
+      stopBits   : cfg.connection.stopBits,
+      parity     : cfg.connection.parity,
+      analyzerUid: cfg.analyzer_uid,
+      labUid     : cfg.lab_uid,
+      rtscts     : cfg.connection.rtscts,
+      xon        : cfg.connection.xon,
+      xoff       : cfg.connection.xoff
     });
 
     // --- 2. ASTMFramer ---
-    // writeFn is a closure so ACK/NAK always go to the current port instance
-    // even after a reconnect creates a new SerialPort object internally.
+    // writeFn is a closure so ACK/NAK always go to the current port
+    // instance even after the supervisor reconnects.
     this._framer = new ASTMFramer({
-      writeFn         : (buffer) => this._writeToPort(buffer),
-      checksumEnabled : cfg.protocol.checksumEnabled !== false,
-      maxFrameBytes   : cfg.protocol.maxFrameBytes   || 240,
-      analyzerUid     : cfg.analyzer_uid,
-      labUid          : cfg.lab_uid
+      writeFn        : (buffer) => this._writeToPort(buffer),
+      checksumEnabled: cfg.protocol.checksumEnabled !== false,
+      maxFrameBytes  : cfg.protocol.maxFrameBytes   || 240,
+      analyzerUid    : cfg.analyzer_uid,
+      labUid         : cfg.lab_uid
     });
 
     // --- 3. Access2Parser ---
@@ -378,10 +362,6 @@ class IntegrationEngine {
       analyzerUid: cfg.analyzer_uid,
       labUid     : cfg.lab_uid
     });
-
-    // ParameterMapper and ResultWriter are created later in _initialiseDbModules()
-    // once the database connection is confirmed. The serial port starts immediately
-    // so no data is lost during DB connection establishment.
 
     // -----------------------------------------------------------------------
     // Event wiring
@@ -399,12 +379,15 @@ class IntegrationEngine {
 
     this._serialManager.on('disconnected', (reason) => {
       logger.warn('Serial port disconnected', { reason });
-      // Reset framer so a partial ASTM transmission is discarded on reconnect
+      // Reset framer so a partial ASTM transmission is discarded
+      // before any reconnect attempt.
       this._framer.reset();
-    });
-
-    this._serialManager.on('reconnecting', (attempt, delayMs) => {
-      logger.info('Reconnecting to serial port', { attempt, delayMs });
+      // Trigger the supervisor to retry the connection. The supervisor
+      // is the single owner of retry policy; SerialPortManager itself
+      // does not schedule reconnects anymore.
+      if (this._running && this._serialSupervisor && reason !== 'clean close') {
+        this._serialSupervisor.notifyDisconnected();
+      }
     });
 
     this._serialManager.on('error', (err) => {
@@ -420,7 +403,6 @@ class IntegrationEngine {
       logger.error('ASTMFramer error', { error: err.message });
     });
 
-    // ASTMFramer transmission lifecycle events
     this._framer.on('transmissionStart', async () => {
       this._stats.transmissions++;
       logger.info('ASTM transmission started (ENQ received)');
@@ -451,7 +433,7 @@ class IntegrationEngine {
       logger.info('ASTM message session ended (L record received)');
     });
 
-    // Access2Parser result events -> ParameterMapper -> ResultWriter
+    // Access2Parser results -> ParameterMapper -> ResultWriter
     this._parser.on('results', async (parsedResults) => {
       this._stats.resultsReceived += parsedResults.length;
       this._stats.lastResultAt = new Date();
@@ -472,9 +454,9 @@ class IntegrationEngine {
       } catch (err) {
         this._stats.resultsFailed += parsedResults.length;
         logger.error('Unhandled error in result processing pipeline', {
-          count : parsedResults.length,
-          error : err.message,
-          stack : err.stack
+          count: parsedResults.length,
+          error: err.message,
+          stack: err.stack
         });
       }
     });
@@ -482,8 +464,8 @@ class IntegrationEngine {
     this._parser.on('parseError', (err, rawMessage) => {
       this._stats.parseErrors++;
       logger.error('Access 2 parse error', {
-        error     : err.message,
-        rawLength : rawMessage.length
+        error    : err.message,
+        rawLength: rawMessage.length
       });
     });
 
@@ -521,119 +503,21 @@ class IntegrationEngine {
   }
 
   // ---------------------------------------------------------------------------
-  // Internal - background database connection with retry
-  // ---------------------------------------------------------------------------
-
-  // ---------------------------------------------------------------------------
-  // Internal - background serial port connection with retry
-  // ---------------------------------------------------------------------------
-
-  async _connectSerialWithRetry() {
-    const INITIAL_DELAY_MS = 5000;
-    const MAX_DELAY_MS     = 5000;
-    let   delayMs          = INITIAL_DELAY_MS;
-
-    this._serialRetrying = true;
-    logger.info('Background serial connection started', { port: this._config.connection.port });
-
-    while (this._running) {
-      try {
-        logger.info('Attempting serial port connection...', { port: this._config.connection.port });
-        await this._serialManager.connect();
-        this._serialRetrying = false;
-        logger.info('Serial port connected', { port: this._config.connection.port });
-        break; // SerialPortManager handles reconnects internally from here
-      } catch (err) {
-        if (!this._running) break;
-
-        logger.warn(
-          `Serial port unavailable, retrying in ${delayMs / 1000}s`,
-          { port: this._config.connection.port, error: err.message }
-        );
-
-        await new Promise((resolve) => {
-          this._serialRetryTimer = setTimeout(resolve, delayMs);
-        });
-        this._serialRetryTimer = null;
-
-        delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
-      }
-    }
-
-    if (!this._running) {
-      this._serialRetrying = false;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Internal - background database connection with retry
-  // ---------------------------------------------------------------------------
-
-  async _connectDbWithRetry() {
-    const INITIAL_DELAY_MS = 5000;
-    const MAX_DELAY_MS     = 60000;
-    let   delayMs          = INITIAL_DELAY_MS;
-
-    this._dbRetrying = true;
-    logger.info('Background DB connection started');
-
-    while (this._running && !this._dbReady) {
-      try {
-        logger.info('Attempting database connection...');
-        const pool = await this._createDbPool();
-
-        this._dbPool  = pool;
-        this._initialiseDbModules(pool);
-        this._dbReady    = true;
-        this._dbRetrying = false;
-
-        logger.info('Database connected - engine fully operational');
-        break;
-
-      } catch (err) {
-        if (!this._running) break;
-
-        logger.warn(
-          `Database connection failed, retrying in ${delayMs / 1000}s`,
-          { error: err.message }
-        );
-
-        await new Promise((resolve) => {
-          this._dbRetryTimer = setTimeout(resolve, delayMs);
-        });
-        this._dbRetryTimer = null;
-
-        delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
-      }
-    }
-
-    if (!this._dbReady) {
-      this._dbRetrying = false;
-      logger.info('DB retry loop cancelled (engine stopped)');
-    }
-  }
-
-  // ---------------------------------------------------------------------------
   // Internal - port write helper
   // ---------------------------------------------------------------------------
 
   /**
-   * Writes a buffer to the serial port.
-   * Used by ASTMFramer for ACK/NAK transmission.
+   * Writes a buffer to the serial port via SerialPortManager's public
+   * write() method. Used by ASTMFramer for ACK/NAK transmission.
    *
    * @param {Buffer} buffer - Bytes to write (1 byte for ACK/NAK).
    * @returns {Promise<void>}
    */
   _writeToPort(buffer) {
-    return new Promise((resolve, reject) => {
-      if (!this._serialManager || !this._serialManager._port || !this._serialManager._isOpen) {
-        return reject(new Error('Cannot write to port: port is not open'));
-      }
-      this._serialManager._port.write(buffer, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
+    if (!this._serialManager) {
+      return Promise.reject(new Error('Cannot write to port: serial manager not initialised'));
+    }
+    return this._serialManager.write(buffer);
   }
 
   // ---------------------------------------------------------------------------
