@@ -114,21 +114,32 @@ class ResultWriter {
   async write(results) {
     if (!Array.isArray(results) || results.length === 0) return;
 
-    const placeholders = results.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const placeholders = results.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
     const sql = `
       INSERT INTO lis_results
         (lab_uid, analyzer_uid, barcode_uid, parameter_code, unit, value, flag,
-         patient_name, age, age_type, gender)
+         patient_name, age, age_type, gender, status, received_at)
       VALUES
         ${placeholders}
     `;
 
     const params = [];
     for (const r of results) {
-      // Age is stored as the most precise available value.
-      // If ageYear is available use that; otherwise fall back to ageMonth.
-      const age     = r.age_year !== null ? r.age_year : (r.age_month !== null ? r.age_month : null);
-      const ageType = r.age_type || null;
+      // age: use ageYear when available, otherwise ageMonth (both are integers).
+      const age = r.age_year !== null && r.age_year !== undefined
+        ? r.age_year
+        : (r.age_month !== null && r.age_month !== undefined ? r.age_month : null);
+
+      // age_type: DB column is char(1) — 'Y' for years, 'M' for months.
+      const ageTypeMap = { YEAR: 'Y', MONTH: 'M', Y: 'Y', M: 'M' };
+      const ageType    = r.age_type ? (ageTypeMap[r.age_type] || null) : null;
+
+      // gender: DB column is char(1) — 'M' or 'F'.
+      const genderMap = { MALE: 'M', FEMALE: 'F', M: 'M', F: 'F' };
+      const gender    = r.gender ? (genderMap[r.gender] || null) : null;
+
+      // received_at: convert ASTM datetime string (YYYYMMDDHHMMSS) to MySQL datetime.
+      const received = this._parseAstmDatetime(r.result_datetime);
 
       params.push(
         r.lab_uid        ?? this._labUid,
@@ -141,7 +152,9 @@ class ResultWriter {
         r.patient_name   ?? null,
         age,
         ageType,
-        r.gender         ?? null
+        gender,
+        0,           // status: 0 = new / not yet processed by LIMS
+        received
       );
     }
 
@@ -258,6 +271,23 @@ class ResultWriter {
 
     req.write(bodyStr);
     req.end();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Converts an ASTM datetime string (YYYYMMDDHHMMSS) to a MySQL-compatible
+   * datetime string (YYYY-MM-DD HH:MM:SS). Returns null for absent/invalid input.
+   *
+   * @param {string} dt - ASTM result_datetime field value.
+   * @returns {string|null}
+   */
+  _parseAstmDatetime(dt) {
+    if (!dt || dt.length < 8) return null;
+    const s = dt.replace(/\D/g, '').padEnd(14, '0');
+    return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)} ${s.slice(8,10)}:${s.slice(10,12)}:${s.slice(12,14)}`;
   }
 
   /**

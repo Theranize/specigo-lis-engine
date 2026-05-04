@@ -76,6 +76,7 @@ const winston           = require('winston');
 require('winston-daily-rotate-file');
 const IntegrationEngine = require('./src/engine/IntegrationEngine');
 const IntegrationAPI    = require('./IntegrationAPI');
+const PanelServer       = require('./src/panel/PanelServer');
 
 // ---------------------------------------------------------------------------
 // Bootstrap logger (used only in index.js for startup/shutdown messages)
@@ -163,51 +164,56 @@ logger.info('Starting engine', {
 
 async function main() {
   let engine;
-  let api;
 
+  // Construct engine - this only reads config files, never fails on hardware.
   try {
     engine = new IntegrationEngine(configFilePath);
   } catch (err) {
-    logger.error('Failed to construct IntegrationEngine', {
+    logger.error('Failed to construct IntegrationEngine - cannot continue', {
       error: err.message,
       stack: err.stack
     });
     process.exit(1);
   }
 
+  // Start REST API (port 3002) - always start, engine provides getStatus() even before hardware connects.
   try {
-    await engine.start();
-    logger.info('Engine started successfully - listening for Access 2 data');
-  } catch (err) {
-    logger.error('Engine failed to start', {
-      error: err.message,
-      stack: err.stack
-    });
-    try {
-      await engine.stop();
-    } catch (stopErr) {
-      logger.error('Error during emergency stop after failed start', {
-        error: stopErr.message
-      });
-    }
-    process.exit(1);
-  }
-
-  // Start REST API after engine is running.
-  // The API requires the engine to be running so getStatus() returns meaningful data.
-  try {
-    api = new IntegrationAPI({
-      engine : engine,
-      dbPool : engine._dbPool,   // may be null initially - API handles this gracefully
-      port   : parseInt(process.env.API_PORT || '3002', 10)
+    const api = new IntegrationAPI({
+      engine,
+      dbPool: null,  // pool not ready yet - IntegrationAPI handles this gracefully
+      port  : parseInt(process.env.API_PORT || '3002', 10)
     });
     await api.start();
     logger.info('REST API started', { port: process.env.API_PORT || '3002' });
   } catch (err) {
-    logger.error('IntegrationAPI failed to start - engine continues without REST API', {
+    logger.warn('IntegrationAPI failed to start - continuing without REST API', {
       error: err.message
     });
-    // REST API failure is non-fatal. The engine continues collecting data.
+  }
+
+  // Start control panel (port 3003) - always start regardless of hardware state.
+  try {
+    const panel = new PanelServer({ engine });
+    await panel.start();
+    logger.info('Control panel ready', {
+      url: `http://localhost:${process.env.PANEL_PORT || '3003'}`
+    });
+  } catch (err) {
+    logger.warn('PanelServer failed to start - continuing without control panel', {
+      error: err.message
+    });
+  }
+
+  // Start engine - serial port and DB connect in background, never blocks here.
+  try {
+    await engine.start();
+    logger.info('Engine started - connecting to serial port and database in background');
+  } catch (err) {
+    logger.error('Engine.start() failed unexpectedly', {
+      error: err.message,
+      stack: err.stack
+    });
+    // Do not exit - panel is already up, user can see the error and retry via UI.
   }
 }
 

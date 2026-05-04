@@ -1,11 +1,11 @@
 {
   "database": {
     "_comment": "MySQL database connection settings",
-    "host": "127.0.0.1",
+    "host": "69.62.77.70",
     "port": 3306,
-    "user": "admin",
-    "password": "admin",
-    "database": "lis_db",
+    "user": "u151751738_theranizeDevU",
+    "password": "Aw&v7Ac9",
+    "database": "u151751738_theranizeDevh1",
     "poolSize": 5
   },
 

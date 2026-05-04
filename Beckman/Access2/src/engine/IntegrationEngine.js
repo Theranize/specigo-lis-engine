@@ -107,6 +107,9 @@ class IntegrationEngine {
     this._dbRetrying     = false;
     this._dbRetryTimer   = null;
 
+    this._serialRetrying = false;
+    this._serialRetryTimer = null;
+
     this._stats = {
       resultsReceived  : 0,
       resultsWritten   : 0,
@@ -141,18 +144,19 @@ class IntegrationEngine {
     this._initialiseModules();
     this._registerShutdownHandlers();
 
-    await this._serialManager.connect();
-
     this._running   = true;
     this._startedAt = new Date();
 
-    logger.info('IntegrationEngine running - serial port open', {
+    logger.info('IntegrationEngine running', {
       analyser: this._config.model,
       site    : this._config.site,
       port    : this._config.connection.port
     });
 
-    // Connect to database in the background - does NOT block the serial port.
+    // Both serial port and database connect in the background.
+    // Engine is considered "running" as soon as config is loaded and modules are wired.
+    // This ensures the control panel and REST API are always accessible.
+    this._connectSerialWithRetry();
     this._connectDbWithRetry();
   }
 
@@ -166,6 +170,12 @@ class IntegrationEngine {
     }
 
     logger.info('IntegrationEngine stopping...');
+
+    this._serialRetrying = false;
+    if (this._serialRetryTimer) {
+      clearTimeout(this._serialRetryTimer);
+      this._serialRetryTimer = null;
+    }
 
     this._dbRetrying = false;
     if (this._dbRetryTimer) {
@@ -208,13 +218,14 @@ class IntegrationEngine {
       site          : this._config?.site        || null,
       labUid        : this._config?.lab_uid     || null,
       analyzerUid   : this._config?.analyzer_uid|| null,
-      connected     : serialStatus.isOpen       || false,
-      port          : serialStatus.port         || null,
-      baudRate      : serialStatus.baudRate      || null,
-      isReconnecting: serialStatus.isReconnecting || false,
-      lastByteAt    : serialStatus.stats?.lastByteAt || null,
-      dbReady       : this._dbReady,
-      dbRetrying    : this._dbRetrying,
+      connected       : serialStatus.isOpen         || false,
+      port            : serialStatus.port           || null,
+      baudRate        : serialStatus.baudRate        || null,
+      isReconnecting  : serialStatus.isReconnecting  || false,
+      serialRetrying  : this._serialRetrying         || false,
+      lastByteAt      : serialStatus.stats?.lastByteAt || null,
+      dbReady         : this._dbReady,
+      dbRetrying      : this._dbRetrying,
       stats         : {
         ...this._stats,
         serial : serialStatus.stats  || {},
@@ -515,6 +526,51 @@ class IntegrationEngine {
     });
 
     logger.info('ParameterMapper and ResultWriter initialised - engine fully operational');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal - background database connection with retry
+  // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Internal - background serial port connection with retry
+  // ---------------------------------------------------------------------------
+
+  async _connectSerialWithRetry() {
+    const INITIAL_DELAY_MS = 5000;
+    const MAX_DELAY_MS     = 5000;
+    let   delayMs          = INITIAL_DELAY_MS;
+
+    this._serialRetrying = true;
+    logger.info('Background serial connection started', { port: this._config.connection.port });
+
+    while (this._running) {
+      try {
+        logger.info('Attempting serial port connection...', { port: this._config.connection.port });
+        await this._serialManager.connect();
+        this._serialRetrying = false;
+        logger.info('Serial port connected', { port: this._config.connection.port });
+        break; // SerialPortManager handles reconnects internally from here
+      } catch (err) {
+        if (!this._running) break;
+
+        logger.warn(
+          `Serial port unavailable, retrying in ${delayMs / 1000}s`,
+          { port: this._config.connection.port, error: err.message }
+        );
+
+        await new Promise((resolve) => {
+          this._serialRetryTimer = setTimeout(resolve, delayMs);
+        });
+        this._serialRetryTimer = null;
+
+        delayMs = Math.min(delayMs * 2, MAX_DELAY_MS);
+      }
+    }
+
+    if (!this._running) {
+      this._serialRetrying = false;
+    }
   }
 
   // ---------------------------------------------------------------------------
