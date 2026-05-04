@@ -799,6 +799,11 @@
     .modal-title-icon svg { width: 14px; height: 14px; }
     .modal-title    { font-size: 14px; font-weight: 600; color: var(--c-text); }
     .modal-subtitle { font-size: 12px; color: var(--c-text-muted); margin-top: 2px; font-family: var(--font-mono); }
+    .modal-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
     .modal-close {
       width: 30px; height: 30px;
       border-radius: var(--radius-md);
@@ -981,69 +986,12 @@
               <div class="detail-row"><span class="detail-key">Site</span><span class="detail-val" id="dSite">—</span></div>
               <div class="detail-row"><span class="detail-key">Lab UID</span><span class="detail-val mono" id="dLab">—</span></div>
               <div class="detail-row"><span class="detail-key">Started at</span><span class="detail-val" id="dStarted">—</span></div>
-              <div class="detail-row"><span class="detail-key">Last data received</span><span class="detail-val" id="dLastByte">—</span></div>
-            </div>
-
-            <div style="height: 18px;"></div>
-
-            <div class="card-title" style="margin-bottom: 12px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3v18h18" />
-                <path d="M7 14l4-4 4 4 5-5" />
-              </svg>
-              Session Counters
-            </div>
-            <div class="counter-grid">
-              <div class="counter"><div class="counter-label">Received</div><div class="counter-value" id="cReceived">—</div></div>
-              <div class="counter"><div class="counter-label">Written</div><div class="counter-value" id="cWritten">—</div></div>
-              <div class="counter"><div class="counter-label">Transmissions</div><div class="counter-value" id="cTx">—</div></div>
-              <div class="counter"><div class="counter-label">Skipped</div><div class="counter-value" id="cSkipped">—</div></div>
-              <div class="counter"><div class="counter-label">Failed</div><div class="counter-value" id="cFailed">—</div></div>
-              <div class="counter"><div class="counter-label">Parse errors</div><div class="counter-value" id="cErrors">—</div></div>
             </div>
           </div>
         </div>
 
         <!-- Right: controls & quick actions -->
         <div style="display: flex; flex-direction: column; gap: 14px;">
-
-          <div class="card">
-            <div class="card-head">
-              <div class="card-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                Engine Controls
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="control-row">
-                <button class="btn btn-success" id="btnStart" onclick="doAction('start')">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>
-                  Start
-                </button>
-                <button class="btn btn-danger" id="btnStop" onclick="doAction('stop')">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1" /></svg>
-                  Stop
-                </button>
-                <button class="btn btn-warning" id="btnRestart" onclick="doAction('restart')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 12a9 9 0 0 1 15.2-6.5L21 8" />
-                    <path d="M21 3v5h-5" />
-                    <path d="M21 12a9 9 0 0 1-15.2 6.5L3 16" />
-                    <path d="M3 21v-5h5" />
-                  </svg>
-                  Restart
-                </button>
-              </div>
-              <div class="helper-note">
-                <strong>Restart</strong> stops and re-starts the engine, re-reading
-                every config file from disk. Use it after changing
-                <code>system.config.json</code> or <code>access2_config.json</code>.
-              </div>
-            </div>
-          </div>
 
           <div class="card">
             <div class="card-head">
@@ -1192,12 +1140,21 @@
           <div class="modal-subtitle" id="mSubtitle"></div>
         </div>
       </div>
-      <button class="modal-close" onclick="closeModal()" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6"  y2="18" />
-          <line x1="6"  y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btnSendLims" onclick="sendCurrentSampleToLims()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          <span id="btnSendLimsLabel">Send to LIMS</span>
+        </button>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6"  y2="18" />
+            <line x1="6"  y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="modal-body" id="mBody"></div>
   </div>
@@ -1320,22 +1277,6 @@ function renderStatus(s) {
   setDetail('dSite',     s.site      || '—');
   setDetail('dLab',      s.labUid    || '—');
   setDetail('dStarted',  s.startedAt ? formatDateTime(s.startedAt) : '—');
-  setDetail('dLastByte',
-    s.stats && s.stats.serial && s.stats.serial.lastByteAt
-      ? formatDateTime(s.stats.serial.lastByteAt)
-      : '—'
-  );
-
-  setText('cReceived', formatNumber(s.stats && s.stats.resultsReceived));
-  setText('cWritten',  formatNumber(s.stats && s.stats.resultsWritten));
-  setText('cTx',       formatNumber(s.stats && s.stats.transmissions));
-  setText('cErrors',   formatNumber(s.stats && s.stats.parseErrors));
-  setText('cSkipped',  formatNumber(s.stats && s.stats.resultsSkipped));
-  setText('cFailed',   formatNumber(s.stats && s.stats.resultsFailed));
-
-  document.getElementById('btnStart').disabled   =  !!s.running;
-  document.getElementById('btnStop').disabled    =  !s.running;
-  document.getElementById('btnRestart').disabled = false;
 }
 
 function setHeader(stateClass, label) {
@@ -1366,29 +1307,6 @@ function pillHtml(tone, label) {
 /* -----------------------------------------------------------------
    Engine control actions
 ----------------------------------------------------------------- */
-async function doAction(action) {
-  const btnId    = 'btn' + action.charAt(0).toUpperCase() + action.slice(1);
-  const btn      = document.getElementById(btnId);
-  const original = btn.innerHTML;
-  btn.disabled   = true;
-  btn.innerHTML  = '<span class="spinner"></span>';
-
-  try {
-    const res  = await fetch('/api/engine/' + action, { method: 'POST' });
-    const json = await res.json();
-    if (!json.success) throw new Error(json.error || 'Action failed');
-    toast(json.data.message, 'ok');
-    await fetchStatus();
-  } catch (err) {
-    toast(err.message, 'err', 5000);
-    btn.disabled = false;
-  } finally {
-    // Always restore the original button label. The disabled state on success
-    // is reconciled by renderStatus() during fetchStatus().
-    btn.innerHTML = original;
-  }
-}
-
 /* -----------------------------------------------------------------
    Sidebar handler for the Results tab.
    Applies today's date as the default filter on every direct
@@ -1578,27 +1496,27 @@ function clearFilters() {
   document.getElementById('fParam').value   = '';
   document.getElementById('fFlag').value    = 'ALL';
   document.getElementById('fLimit').value   = '50';
-  document.getElementById('rArea').innerHTML =
-    '<div class="placeholder">' +
-      '<div class="placeholder-icon">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
-          '<circle cx="11" cy="11" r="7"/>' +
-          '<line x1="21" y1="21" x2="16.65" y2="16.65"/>' +
-        '</svg>' +
-      '</div>' +
-      '<div class="placeholder-title">No results loaded</div>' +
-      '<div class="placeholder-text">Set your filters and click <strong>Search</strong> to load records.</div>' +
-    '</div>';
-  document.getElementById('rCount').textContent = '—';
+  // Reload with no filters so the operator sees the full dataset instead
+  // of an empty placeholder.
+  loadResults(1);
 }
 
 /* -----------------------------------------------------------------
    Sample detail modal
 ----------------------------------------------------------------- */
+let currentSampleBarcode = null;
+
 async function showSample(barcode) {
+  currentSampleBarcode = barcode;
   document.getElementById('mSubtitle').textContent = barcode;
   document.getElementById('mBody').innerHTML =
     '<div class="placeholder"><div class="spinner spinner-lg" style="display:inline-block;"></div></div>';
+
+  // Disable Send-to-LIMS until results are confirmed loaded.
+  const sendBtn = document.getElementById('btnSendLims');
+  sendBtn.disabled = true;
+  document.getElementById('btnSendLimsLabel').textContent = 'Send to LIMS';
+
   document.getElementById('overlay').classList.add('is-open');
 
   try {
@@ -1612,6 +1530,9 @@ async function showSample(barcode) {
         '<div class="placeholder"><div class="placeholder-text">No results found for this sample.</div></div>';
       return;
     }
+
+    // Results loaded successfully - allow the user to push them to LIMS.
+    sendBtn.disabled = false;
 
     const first = rows[0];
     const patientBlock =
@@ -1666,10 +1587,51 @@ async function showSample(barcode) {
 
 function closeModal() {
   document.getElementById('overlay').classList.remove('is-open');
+  currentSampleBarcode = null;
 }
 
 function onOverlayClick(e) {
   if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+/* -----------------------------------------------------------------
+   Push the currently-open sample to the configured LIMS API.
+   Reads lims_api credentials server-side from system.config.json.
+----------------------------------------------------------------- */
+async function sendCurrentSampleToLims() {
+  if (!currentSampleBarcode) {
+    toast('No sample selected.', 'err');
+    return;
+  }
+
+  const btn   = document.getElementById('btnSendLims');
+  const label = document.getElementById('btnSendLimsLabel');
+  const originalLabel = label.textContent;
+
+  btn.disabled    = true;
+  label.textContent = 'Sending…';
+
+  try {
+    const res = await fetch(
+      '/api/results/barcode/' + encodeURIComponent(currentSampleBarcode) + '/send-to-lims',
+      { method: 'POST' }
+    );
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Send failed');
+
+    toast(json.data.message || 'Sent to LIMS.', 'ok');
+    label.textContent = 'Sent';
+    // Keep the button disabled briefly so an over-eager double-click is
+    // suppressed, then restore the original label.
+    setTimeout(() => {
+      label.textContent = originalLabel;
+      btn.disabled = false;
+    }, 1500);
+  } catch (err) {
+    toast(err.message, 'err', 5000);
+    label.textContent = originalLabel;
+    btn.disabled = false;
+  }
 }
 
 /* -----------------------------------------------------------------
