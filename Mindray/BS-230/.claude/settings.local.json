@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where pdftotext *)",
+      "Bash(where pdftoppm *)",
+      "Bash(pdftotext -layout \"docs/research/BS-230_Operation Manual_V8.0_EN \\(1\\).pdf\" \"docs/research/BS-230_manual.txt\")",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(node *)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}
