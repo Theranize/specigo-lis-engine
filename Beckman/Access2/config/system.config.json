@@ -20,5 +20,12 @@
     "log_level": "debug",
     "_retention_comment": "Number of days that daily-rotated log files are kept on disk. Older files are automatically deleted by winston-daily-rotate-file.",
     "retention_days": 14
+  },
+
+  "data_retention": {
+    "_comment": "Auto-delete database rows older than 'days'. Runs every 'interval_minutes' minutes plus once at engine startup. Set 'days' to 0 to disable cleanup entirely.",
+    "days": 15,
+    "interval_minutes": 60,
+    "tables": ["lis_results", "lis_integration_log"]
   }
 }

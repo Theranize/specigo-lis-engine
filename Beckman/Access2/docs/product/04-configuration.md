@@ -37,6 +37,11 @@ be created manually on every host.
   "logger": {
     "log_level": "info",
     "retention_days": 14
+  },
+  "data_retention": {
+    "days": 15,
+    "interval_minutes": 60,
+    "tables": ["lis_results", "lis_integration_log"]
   }
 }
 ```
@@ -86,6 +91,43 @@ results land in the local DB, but no LIMS push is attempted.
 Use `info` in production, `debug` during commissioning. The
 `log_level` value is read once at startup and copied into
 `process.env.LOG_LEVEL` so all Winston instances see it.
+
+#### `data_retention.*`
+
+Controls automatic deletion of operational rows from the database.
+The `RetentionSweeper` runs once at engine startup and then on a
+periodic timer; rows older than `days` are removed from each listed
+table.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `days` | integer | 15 | Rows whose `created_at` is older than this many days are deleted. **Set to 0 to disable cleanup entirely.** |
+| `interval_minutes` | integer | 60 | How often the sweep runs after the initial startup pass. Minimum 1 minute |
+| `tables` | string[] | `["lis_results", "lis_integration_log"]` | Subset of supported tables to clean. Names are validated against a hardcoded allow-list — typos or arbitrary tables are rejected and logged |
+
+Currently supported tables (the allow-list):
+
+| Table | Date column |
+|---|---|
+| `lis_results` | `created_at` |
+| `lis_integration_log` | `created_at` |
+
+Adding a new table to this allow-list requires a code change in
+`src/db/RetentionSweeper.js` (the `ALLOWED_TABLES` constant). This
+guards against an attacker with config-write access turning the
+sweeper into an arbitrary `DELETE` primitive.
+
+Behaviour examples:
+
+| Goal | Setting |
+|---|---|
+| Keep 30 days, sweep hourly | `{ "days": 30, "interval_minutes": 60 }` |
+| Keep 7 days, sweep every 15 min | `{ "days": 7, "interval_minutes": 15 }` |
+| Disable cleanup entirely | `{ "days": 0 }` |
+| Clean only results, leave logs | `{ "days": 15, "tables": ["lis_results"] }` |
+
+Each sweep logs how many rows were deleted per table at INFO level
+(visible in the panel's Logs tab with module filter `CLEANUP`).
 
 ### Environment variables
 

@@ -259,13 +259,81 @@ WHERE lab_uid = '6887129073FDA'
   AND DATE(created_at) = CURDATE();
 ```
 
+## Auto-retention (RetentionSweeper)
+
+The engine deletes operational rows older than the configured retention
+window. This keeps the live database lean — historical data should
+live in archival storage (LIMS data warehouse, cold backups), not in
+`lis_results`.
+
+### How it works
+
+A `RetentionSweeper` instance is built when the DB pool comes up. It:
+
+1. Runs one cleanup pass immediately at engine startup.
+2. Sets a `setInterval(..)` to repeat every `interval_minutes`.
+3. For each table in the configured `tables` list, executes:
+   ```sql
+   DELETE FROM <table> WHERE created_at < (NOW() - INTERVAL ? DAY)
+   ```
+   parameterised with `data_retention.days`.
+4. Logs the deleted row count per table to the `CLEANUP` module.
+
+### Configuration
+
+In `config/system.config.json`:
+
+```json
+"data_retention": {
+  "days": 15,
+  "interval_minutes": 60,
+  "tables": ["lis_results", "lis_integration_log"]
+}
+```
+
+| Field | Default | Notes |
+|---|---|---|
+| `days` | 15 | Set to 0 to disable cleanup entirely |
+| `interval_minutes` | 60 | Minimum 1 minute |
+| `tables` | both supported tables | Allow-listed in source code |
+
+See [04 Configuration § `data_retention.*`](04-configuration.md) for
+the complete reference.
+
+### Safety guarantees
+
+- Table names are validated against a **hardcoded allow-list** in
+  `src/db/RetentionSweeper.js`. Names not in this list (typos, or
+  malicious additions) are rejected with a warning and ignored.
+- Every DELETE is parameterised — no SQL injection surface.
+- If one table's DELETE fails (lock timeout, missing permission), the
+  sweep continues with the next table; the failure is logged.
+- The sweep timer uses `unref()` so it does not keep the Node process
+  alive on shutdown.
+
+### Verifying it ran
+
+Open the panel's Logs tab, filter Module = `CLEANUP`. You should see
+one INFO line per sweep:
+
+```
+[CLEANUP] [INFO] Retention sweep deleted rows  {"table":"lis_results","deleted":42,"olderThanDays":15}
+[CLEANUP] [INFO] Retention sweep completed     {"durationMs":156,"deleted":{"lis_results":42,"lis_integration_log":12}}
+```
+
+If `deleted` shows 0 for every table, either the retention window is
+generous (no rows are old enough yet) or the cleanup is disabled
+(`days: 0`).
+
 ## Backup recommendations
 
 The engine does not back up the database. Operations should:
 
 - Take a daily `mysqldump` of `lis_results` and `lis_integration_log`
-- Retain 30 days of dumps minimum (medical-record retention varies by
-  jurisdiction; check local rules)
+  **before** the retention window expires (otherwise data older than
+  `data_retention.days` is permanently gone)
+- Retain 30+ days of dumps minimum (medical-record retention varies
+  by jurisdiction; check local rules)
 - Test restore quarterly
 
 The engine is a pure consumer of the DB — losing the engine PC does

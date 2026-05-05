@@ -32,6 +32,7 @@ const ASTMFramer           = require('../protocol/ASTMFramer');
 const Access2Parser        = require('../protocol/Access2Parser');
 const ParameterMapper      = require('../mapping/ParameterMapper');
 const ResultWriter         = require('../db/ResultWriter');
+const RetentionSweeper     = require('../db/RetentionSweeper');
 const ConfigLoader         = require('./ConfigLoader');
 const ConnectionSupervisor = require('./ConnectionSupervisor');
 
@@ -71,6 +72,7 @@ class IntegrationEngine {
     this._parser         = null;
     this._mapper         = null;
     this._writer         = null;
+    this._retentionSweeper = null;
 
     this._serialSupervisor = null;
     this._dbSupervisor     = null;
@@ -155,6 +157,11 @@ class IntegrationEngine {
 
     if (this._serialSupervisor) this._serialSupervisor.stop();
     if (this._dbSupervisor)     this._dbSupervisor.stop();
+
+    if (this._retentionSweeper) {
+      this._retentionSweeper.stop();
+      this._retentionSweeper = null;
+    }
 
     if (this._serialManager) {
       try {
@@ -481,7 +488,8 @@ class IntegrationEngine {
   // ---------------------------------------------------------------------------
 
   _initialiseDbModules(pool) {
-    const cfg = this._config;
+    const cfg       = this._config;
+    const retention = (this._systemConfig && this._systemConfig.data_retention) || {};
 
     this._mapper = new ParameterMapper({
       dbPool       : pool,
@@ -499,7 +507,15 @@ class IntegrationEngine {
       limsApi     : (this._systemConfig && this._systemConfig.lims_api) || null
     });
 
-    logger.info('ParameterMapper and ResultWriter initialised - engine fully operational');
+    this._retentionSweeper = new RetentionSweeper({
+      dbPool         : pool,
+      days           : retention.days,
+      intervalMinutes: retention.interval_minutes,
+      tables         : retention.tables
+    });
+    this._retentionSweeper.start();
+
+    logger.info('ParameterMapper, ResultWriter, and RetentionSweeper initialised - engine fully operational');
   }
 
   // ---------------------------------------------------------------------------

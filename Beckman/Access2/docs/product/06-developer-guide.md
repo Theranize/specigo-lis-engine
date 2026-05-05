@@ -272,6 +272,27 @@ Result shape (subset):
 
 `mapping_status` is `'MAPPED'` or `'UNMAPPED'`.
 
+### `src/db/RetentionSweeper.js`
+
+Periodic DELETE-old-rows job. Built and started as part of
+`_initialiseDbModules(pool)` once the DB connection is verified.
+
+Public API:
+```js
+new RetentionSweeper({
+  dbPool, days, intervalMinutes, tables
+});
+
+sweeper.start();    // first sweep immediately, then every intervalMinutes
+sweeper.stop();     // cancel the timer
+await sweeper.sweep();  // manual one-shot sweep, returns { table: deleted_count }
+```
+
+The list of cleanable tables is constrained by a hardcoded allow-list
+inside the module (`ALLOWED_TABLES`). Adding a new table requires a
+code change — this is intentional, see the inline comment for
+rationale.
+
 ### `src/db/ResultWriter.js`
 
 Persists mapped results to MySQL and (fire-and-forget) to the LIMS
