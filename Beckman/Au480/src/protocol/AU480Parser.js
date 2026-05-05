@@ -62,46 +62,8 @@
 'use strict';
 
 const { EventEmitter } = require('events');
-const winston          = require('winston');
 
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [AU480] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.File({
-      filename: 'logs/serial-error.log',
-      level   : 'error',
-      maxsize : 5 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.File({
-      filename: 'logs/serial-combined.log',
-      maxsize : 10 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [AU480] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const logger = require('../logger').createLogger('AU480');
 
 // ---------------------------------------------------------------------------
 // Flag meaning map

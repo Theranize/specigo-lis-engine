@@ -2,114 +2,43 @@
  * ParameterMapper.js
  * SpeciGo LIS Integration Engine - Mapping Layer
  *
- * Receives a ParsedResult from AU480Parser and enriches it with LIMS identity
- * data by running two database lookups:
+ * Receives ParsedResult objects from AU480Parser and maps them to the LIMS
+ * parameter identifiers required by ResultWriter.
  *
- *   1. Barcode lookup  - Verifies sampleId exists in report_barcode and is active.
- *                        Returns barcode_uid, lab_uid, report_uid, patient_uid,
- *                        and all other fields needed by ResultWriter.
+ * For the AU480 the mapping key is the 3-digit Online Test Number (e.g.
+ * '009', '021') from the AU480 frame variable section. This differs from
+ * the Access 2 which keys by ASTM assay code string.
  *
- *   2. Parameter lookup - Resolves onlineTestNo to lims_parameter_uid and
- *                         lims_test_uid via lab_analyzer_parameters.
- *
- * Both lookups use a cache layer (simple in-memory Map) to avoid repeated DB
- * hits for the same barcode or parameter within a single analyser run.
- * Cache is intentionally short-lived (TTL-based) because LIMS data can change
- * between runs. Barcode cache TTL is 10 minutes. Parameter map cache is 60
- * minutes (parameter mappings change only when an admin updates them).
- *
- * Output:
- *   Returns a MappedResult object on success, or a MappingFailure object if
- *   either lookup fails. The engine writes both outcomes to lis_integration_results
- *   with the appropriate mapping_status ('MAPPED' or 'UNMAPPED').
+ * The parameter_map is loaded directly from the analyser config JSON file.
+ * No database lookup is performed here - mapping is resolved from config
+ * only, which means the parameter mapping must be populated in
+ * au480_config.json before the engine goes live.
  *
  * MappedResult shape:
  * {
- *   ...ParsedResult fields (all preserved),
- *   barcodeUid        : string,
- *   reportUid         : string,
- *   patientUid        : string,
- *   labUid            : string,
- *   processingLabUid  : string,
- *   limsParameterUid  : string,
- *   limsTestUid       : string,
- *   mappingStatus     : 'MAPPED',
- *   mappingError      : null
- * }
- *
- * MappingFailure shape:
- * {
- *   ...ParsedResult fields (all preserved),
- *   barcodeUid        : string|null,
- *   limsParameterUid  : null,
- *   limsTestUid       : null,
- *   mappingStatus     : 'UNMAPPED' | 'ERROR',
- *   mappingError      : string   (reason for failure)
+ *   lab_uid          : string,
+ *   analyzer_uid     : string,
+ *   barcode_uid      : string,   // sampleId from AU480Parser
+ *   parameter_code   : string,   // from parameter_map[onlineTestNo].code
+ *   loinc_id         : string,   // from parameter_map[onlineTestNo].loinc_id
+ *   unit             : string,   // from parameter_map[onlineTestNo].unit
+ *   value            : number|null,
+ *   raw_value        : string,
+ *   flag             : string|null,
+ *   patient_name     : string|null,
+ *   age_year         : number|null,
+ *   age_month        : number|null,
+ *   age_type         : string|null,  // 'YEAR' | 'MONTH' | null
+ *   gender           : string|null,  // 'MALE' | 'FEMALE' | null
+ *   result_status    : string,
+ *   result_datetime  : string|null,  // AU480 frames carry no datetime; null
+ *   mapping_status   : 'MAPPED' | 'UNMAPPED'
  * }
  */
 
 'use strict';
 
-const winston = require('winston');
-
-// ---------------------------------------------------------------------------
-// Logger
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [MAPPER] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.File({
-      filename: 'logs/serial-error.log',
-      level   : 'error',
-      maxsize : 5 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.File({
-      filename: 'logs/serial-combined.log',
-      maxsize : 10 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [MAPPER] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
-
-// ---------------------------------------------------------------------------
-// Cache TTL constants
-// ---------------------------------------------------------------------------
-const BARCODE_CACHE_TTL_MS   = 10 * 60 * 1000;   // 10 minutes
-const PARAMETER_CACHE_TTL_MS = 60 * 60 * 1000;   // 60 minutes
-
-// ---------------------------------------------------------------------------
-// Cache entry wrapper
-// ---------------------------------------------------------------------------
-class CacheEntry {
-  constructor(value) {
-    this.value     = value;
-    this.createdAt = Date.now();
-  }
-
-  isAlive(ttlMs) {
-    return (Date.now() - this.createdAt) < ttlMs;
-  }
-}
+const logger = require('../logger').createLogger('MAPPER');
 
 // ---------------------------------------------------------------------------
 // ParameterMapper class
@@ -118,10 +47,12 @@ class ParameterMapper {
 
   /**
    * @param {object} options
-   * @param {object} options.dbPool       - mysql2 promise pool from IntegrationEngine.
-   * @param {string} options.analyzerCode - e.g. 'AU480'. Used in parameter lookup query.
-   * @param {string} options.analyzerUid  - Used in log context.
-   * @param {string} options.labUid       - Fallback lab_uid if barcode lookup fails.
+   * @param {object} options.dbPool        - mysql2 promise pool from IntegrationEngine.
+   * @param {string} options.analyzerCode  - 'AU480'. Used in log context.
+   * @param {string} options.analyzerUid   - From lab_analyzers.analyzer_uid.
+   * @param {string} options.labUid        - lab_uid for all written records.
+   * @param {object} options.parameter_map - From au480_config.json parameter_map block.
+   *                                         Keys are 3-digit Online Test numbers (e.g. '009').
    */
   constructor(options = {}) {
     if (!options.dbPool) {
@@ -131,33 +62,24 @@ class ParameterMapper {
       throw new Error('ParameterMapper: options.analyzerCode is required');
     }
 
-    this._pool          = options.dbPool;
-    this._analyzerCode  = options.analyzerCode;
-    this._analyzerUid   = options.analyzerUid || 'unknown';
-    this._labUid        = options.labUid      || '';
-    this._parameter_map = options.parameter_map      || {};
-
-    // Separate caches for barcode rows and parameter mappings.
-    // Keys:
-    //   barcode cache   -> sampleId string
-    //   parameter cache -> `${labUid}:${analyzerCode}:${onlineTestNo}`
-    this._barcodeCache   = new Map();
-    this._parameterCache = new Map();
+    this._pool         = options.dbPool;
+    this._analyzerCode = options.analyzerCode;
+    this._analyzerUid  = options.analyzerUid || 'unknown';
+    this._labUid       = options.labUid      || '';
+    this._parameterMap = options.parameter_map || {};
 
     this.stats = {
       lookups          : 0,
       mapped           : 0,
-      unmappedBarcode  : 0,
       unmappedParameter: 0,
-      errors           : 0,
-      barcodeCacheHits : 0,
-      paramCacheHits   : 0
+      errors           : 0
     };
 
     logger.info('ParameterMapper initialised', {
-      analyzerCode: this._analyzerCode,
-      analyzerUid : this._analyzerUid,
-      labUid      : this._labUid
+      analyzerCode    : this._analyzerCode,
+      analyzerUid     : this._analyzerUid,
+      labUid          : this._labUid,
+      parameterMapKeys: Object.keys(this._parameterMap).length
     });
   }
 
@@ -166,71 +88,142 @@ class ParameterMapper {
   // ---------------------------------------------------------------------------
 
   /**
-   * Maps a single ParsedResult to a MappedResult or MappingFailure.
-   * Never throws - all errors are caught and returned as MappingFailure objects.
+   * Maps an array of ParsedResult objects from AU480Parser to MappedResult
+   * objects. Never throws - unmapped online test numbers come back with
+   * mapping_status='UNMAPPED' so they are still visible in the LIMS for
+   * administrator review.
    *
-   * @param {object} parsedResult - ParsedResult from AU480Parser.
-   * @returns {Promise<object>}   MappedResult or MappingFailure.
+   * @param {object[]} parsedResults - Array of ParsedResult from AU480Parser.
+   * @returns {object[]}             Array of MappedResult objects.
    */
-  async map(parsedResults) {
+  map(parsedResults) {
     const mapped = [];
+
     for (const result of parsedResults) {
+      this.stats.lookups++;
+
       const {
-        sampleId,
         onlineTestNo,
+        sampleId,
+        numericValue,
+        rawValue,
         flagMeaning,
         sex,
         ageYear,
-        ageMonth,
-        numericValue,
-      } = result;    
+        ageMonth
+      } = result;
 
-      const parameterFromConfig = this._parameter_map[onlineTestNo];
+      // Look up parameter in config map by Online Test Number string.
+      // Tolerate callers that pass the test number with stray whitespace or
+      // a numeric type by normalising both sides of the lookup.
+      const key       = String(onlineTestNo || '').trim();
+      const paramEntry = this._parameterMap[key] || null;
 
-      const mappedResult = {
-        lab_uid          : this._labUid,
-        barcode_uid      : sampleId,
-        parameter_code   : parameterFromConfig?.code || null,
-        loinc_id         : parameterFromConfig?.loinc_id || null,
-        unit             : parameterFromConfig?.unit || null,
-        value            : numericValue,
-        flag             : flagMeaning,
-        analyzer_uid     : this._analyzerUid,
-        patient_uid      : parameterFromConfig?.patient_uid || null,  // To be filled by ResultWriter if barcode lookup succeeds
-        patient_name     : parameterFromConfig?.patient_name || null,  // To be filled by ResultWriter if barcode lookup succeeds
-        age_year         : ageYear !== null ? ageYear : (ageMonth !== null ? Math.floor(ageMonth / 12) : null),
-        age_month        : ageMonth !== null ? ageMonth : (ageYear !== null ? ageYear * 12 : null),
-        age_type         : ageYear !== null ? 'YEAR' : (ageMonth !== null ? 'MONTH' : null),
-        gender           : sex === 'M' ? 'MALE' : (sex === 'F' ? 'FEMALE' : null),
-      };
-      mapped.push(mappedResult);
+      const ageYearNum  = this._toNumber(ageYear);
+      const ageMonthNum = this._toNumber(ageMonth);
+
+      const ageType = ageYearNum !== null
+        ? 'YEAR'
+        : (ageMonthNum !== null ? 'MONTH' : null);
+
+      if (!paramEntry) {
+        this.stats.unmappedParameter++;
+        logger.warn('Online test number not found in parameter_map - result will be stored as UNMAPPED', {
+          onlineTestNo: key,
+          sampleId
+        });
+        mapped.push({
+          lab_uid        : this._labUid,
+          analyzer_uid   : this._analyzerUid,
+          barcode_uid    : sampleId  || null,
+          parameter_code : key       || null,
+          loinc_id       : null,
+          unit           : null,
+          value          : numericValue !== null && numericValue !== undefined ? numericValue : null,
+          raw_value      : rawValue !== undefined ? rawValue : null,
+          flag           : flagMeaning || null,
+          patient_name   : null,
+          age_year       : ageYearNum,
+          age_month      : ageMonthNum,
+          age_type       : ageType,
+          gender         : this._mapSex(sex),
+          result_status  : 'F',
+          result_datetime: null,
+          mapping_status : 'UNMAPPED'
+        });
+        continue;
+      }
+
+      this.stats.mapped++;
+      mapped.push({
+        lab_uid        : this._labUid,
+        analyzer_uid   : this._analyzerUid,
+        barcode_uid    : sampleId             || null,
+        parameter_code : paramEntry.code      || key,
+        loinc_id       : paramEntry.loinc_id  || null,
+        unit           : paramEntry.unit      || null,
+        value          : numericValue !== null && numericValue !== undefined ? numericValue : null,
+        raw_value      : rawValue !== undefined ? rawValue : null,
+        flag           : flagMeaning          || null,
+        patient_name   : null,
+        age_year       : ageYearNum,
+        age_month      : ageMonthNum,
+        age_type       : ageType,
+        gender         : this._mapSex(sex),
+        result_status  : 'F',
+        result_datetime: null,
+        mapping_status : 'MAPPED'
+      });
     }
+
+    logger.debug('Mapping complete', {
+      inputCount   : parsedResults.length,
+      mappedCount  : mapped.filter((r) => r.mapping_status === 'MAPPED').length,
+      unmappedCount: mapped.filter((r) => r.mapping_status === 'UNMAPPED').length
+    });
 
     return mapped;
   }
 
   /**
-   * Clears both in-memory caches.
-   * Call at the start of each DB / DE session so stale barcode entries do not
-   * persist across overnight analyser power cycles.
+   * Returns statistics snapshot for the dashboard status endpoint.
    */
-  clearCache() {
-    const barcodeCount   = this._barcodeCache.size;
-    const parameterCount = this._parameterCache.size;
-    this._barcodeCache.clear();
-    this._parameterCache.clear();
-    logger.info('ParameterMapper cache cleared', { barcodeCount, parameterCount });
+  getStats() {
+    return { ...this.stats };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Coerces an AU480-parsed age field (which may be a 3-char/2-char string
+   * with leading spaces or empty) to a finite number, or null.
+   *
+   * @param {*} v
+   * @returns {number|null}
+   */
+  _toNumber(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    const s = String(v).trim();
+    if (!s) return null;
+    const n = parseInt(s, 10);
+    return Number.isFinite(n) ? n : null;
   }
 
   /**
-   * Returns a statistics snapshot for the dashboard status endpoint.
+   * Maps an AU480 sex code to LIMS gender string.
+   *
+   * @param {string} sex - 'M' | 'F' | '' | '0'
+   * @returns {string|null}
    */
-  getStats() {
-    return {
-      ...this.stats,
-      barcodeCacheSize  : this._barcodeCache.size,
-      parameterCacheSize: this._parameterCache.size
-    };
+  _mapSex(sex) {
+    if (!sex) return null;
+    const s = String(sex).trim().toUpperCase();
+    if (s === 'M') return 'MALE';
+    if (s === 'F') return 'FEMALE';
+    return null;
   }
 }
 

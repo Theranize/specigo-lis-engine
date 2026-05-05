@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpeciGo LIS — Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* -----------------------------------------------------------------
+       Design tokens
+    ----------------------------------------------------------------- */
+    :root {
+      --c-page-bg:        #e2e8f0;
+      --c-shell-bg:       #f6f8fb;
+      --c-surface:        #ffffff;
+      --c-surface-alt:    #f8fafc;
+      --c-border:         #e2e8f0;
+      --c-border-strong:  #cbd5e1;
+      --c-text:           #0f172a;
+      --c-text-muted:     #64748b;
+      --c-text-subtle:    #94a3b8;
+
+      --c-sidebar-bg:     #0f1f3a;
+      --c-sidebar-text:   #cbd5e1;
+      --c-sidebar-mute:   #64748b;
+      --c-sidebar-hover:  rgba(255, 255, 255, 0.06);
+      --c-sidebar-active: rgba(255, 255, 255, 0.10);
+
+      --c-brand:          #1e3a5f;
+      --c-brand-deep:     #15294a;
+      --c-brand-soft:     #eef2f7;
+      --c-accent:         #2563eb;
+
+      --c-ok:             #047857;
+      --c-ok-soft:        #ecfdf5;
+      --c-warn:           #b45309;
+      --c-warn-soft:      #fffbeb;
+      --c-err:            #b91c1c;
+      --c-err-soft:       #fef2f2;
+      --c-info:           #1d4ed8;
+      --c-info-soft:      #eff6ff;
+
+      --shadow-sm:        0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md:        0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-lg:        0 10px 25px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05);
+      --shadow-shell:     0 20px 50px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.06);
+
+      --radius-sm:        4px;
+      --radius-md:        6px;
+      --radius-lg:        8px;
+      --radius-xl:        12px;
+
+      --shell-max:        1280px;
+      --sidebar-w:        232px;
+      --topbar-h:         56px;
+
+      --font-sans:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono:        'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    }
+
+    /* -----------------------------------------------------------------
+       Reset and base
+    ----------------------------------------------------------------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-sans);
+      background:
+        radial-gradient(1200px 600px at 0% 0%, #d8e1ee 0%, transparent 60%),
+        radial-gradient(1000px 500px at 100% 100%, #d3dde9 0%, transparent 60%),
+        var(--c-page-bg);
+      color: var(--c-text);
+      min-height: 100%;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    code, .num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+
+    a { color: var(--c-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* -----------------------------------------------------------------
+       Application shell
+    ----------------------------------------------------------------- */
+    .app-shell {
+      width: 100%;
+      max-width: var(--shell-max);
+      height: calc(100vh - 48px);
+      background: var(--c-shell-bg);
+      border: 1px solid var(--c-border-strong);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-shell);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      grid-template-rows: var(--topbar-h) 1fr;
+      grid-template-areas:
+        "sidebar topbar"
+        "sidebar content";
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 0; }
+      .app-shell {
+        border-radius: 0;
+        border: none;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto var(--topbar-h) 1fr;
+        grid-template-areas:
+          "sidebar"
+          "topbar"
+          "content";
+      }
+    }
+
+    /* -----------------------------------------------------------------
+       Sidebar
+    ----------------------------------------------------------------- */
+    .sidebar {
+      grid-area: sidebar;
+      background: var(--c-sidebar-bg);
+      color: var(--c-sidebar-text);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-brand {
+      padding: 18px 18px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      min-height: var(--topbar-h);
+    }
+    .brand-mark {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .brand-mark svg { width: 16px; height: 16px; }
+    .brand-text { display: flex; flex-direction: column; min-width: 0; }
+    .brand-name {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--c-sidebar-mute);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-nav {
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .sidebar-section {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--c-sidebar-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 14px 12px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      color: var(--c-sidebar-text);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--c-sidebar-hover); color: #ffffff; }
+    .nav-item.active {
+      background: var(--c-sidebar-active);
+      color: #ffffff;
+      box-shadow: inset 2px 0 0 var(--c-accent);
+    }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.9; }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      color: var(--c-sidebar-mute);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .sidebar-footer .v {
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* -----------------------------------------------------------------
+       Topbar
+    ----------------------------------------------------------------- */
+    .topbar {
+      grid-area: topbar;
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      gap: 16px;
+    }
+    .topbar-title {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar-page-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--c-text);
+      letter-spacing: -0.005em;
+    }
+    .topbar-page-sub {
+      font-size: 12px;
+      color: var(--c-text-muted);
+      font-weight: 400;
+    }
+
+    .topbar-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--c-border);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--c-surface-alt);
+      color: var(--c-text);
+    }
+    .status-led {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--c-text-subtle);
+      flex-shrink: 0;
+    }
+    .status-led.is-running { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18); }
+    .status-led.is-stopped { background: #ef4444; }
+    .status-led.is-warn    { background: #f59e0b; animation: ledPulse 1.6s ease-in-out infinite; }
+    @keyframes ledPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+    /* -----------------------------------------------------------------
+       Content area
+    ----------------------------------------------------------------- */
+    .content {
+      grid-area: content;
+      padding: 22px 24px 28px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .tab-pane         { display: none; }
+    .tab-pane.active  { display: block; }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+    .meta-left  { font-size: 12px; color: var(--c-text-muted); }
+    .meta-left strong { color: var(--c-text); font-weight: 600; }
+    .meta-right {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--c-text-subtle);
+    }
+    .pulse-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #10b981;
+      animation: ledPulse 2s ease-in-out infinite;
+    }
+
+    /* -----------------------------------------------------------------
+       Cards
+    ----------------------------------------------------------------- */
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; color: var(--c-text);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .card-title svg { width: 15px; height: 15px; color: var(--c-text-muted); }
+    .card-sub  { font-size: 12px; color: var(--c-text-muted); }
+    .card-body { padding: 18px; }
+
+    /* -----------------------------------------------------------------
+       Stat cards
+    ----------------------------------------------------------------- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      display: flex; align-items: flex-start; gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-icon {
+      width: 36px; height: 36px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md);
+      background: var(--c-info-soft);
+      color: var(--c-info);
+    }
+    .stat-icon svg { width: 18px; height: 18px; }
+    .stat-icon.tone-ok   { background: var(--c-ok-soft);   color: var(--c-ok);   }
+    .stat-icon.tone-warn { background: var(--c-warn-soft); color: var(--c-warn); }
+    .stat-icon.tone-info { background: var(--c-info-soft); color: var(--c-info); }
+    .stat-icon.tone-mute { background: #f1f5f9;            color: #475569;       }
+
+    .stat-body  { flex: 1; min-width: 0; }
+    .stat-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      font-size: 24px; font-weight: 700; line-height: 1.15;
+      color: var(--c-text);
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-foot { font-size: 11px; color: var(--c-text-subtle); margin-top: 4px; }
+
+    /* -----------------------------------------------------------------
+       Dashboard layout
+    ----------------------------------------------------------------- */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    .detail-list { display: flex; flex-direction: column; }
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--c-border);
+      font-size: 13px;
+      gap: 12px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-key { color: var(--c-text-muted); font-weight: 500; white-space: nowrap; }
+    .detail-val {
+      font-weight: 500;
+      color: var(--c-text);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Status pills (inline indicators) */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+      font-variant-numeric: tabular-nums;
+    }
+    .pill .led { width: 6px; height: 6px; border-radius: 50%; }
+    .pill.ok   { background: var(--c-ok-soft);   color: var(--c-ok);   border-color: #a7f3d0; }
+    .pill.ok   .led { background: var(--c-ok); }
+    .pill.warn { background: var(--c-warn-soft); color: var(--c-warn); border-color: #fde68a; }
+    .pill.warn .led { background: var(--c-warn); animation: ledPulse 1.6s ease-in-out infinite; }
+    .pill.err  { background: var(--c-err-soft);  color: var(--c-err);  border-color: #fecaca; }
+    .pill.err  .led { background: var(--c-err); }
+    .pill.mute { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+    .pill.mute .led { background: #94a3b8; }
+
+    /* Counter grid */
+    .counter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 760px) { .counter-grid { grid-template-columns: 1fr 1fr; } }
+
+    .counter {
+      background: var(--c-surface-alt);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .counter-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .counter-value {
+      font-size: 18px; font-weight: 700;
+      color: var(--c-text);
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* -----------------------------------------------------------------
+       Buttons
+    ----------------------------------------------------------------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+      letter-spacing: 0.005em;
+      min-height: 34px;
+    }
+    .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+
+    .btn-primary {
+      background: var(--c-brand); color: #fff; border-color: var(--c-brand);
+    }
+    .btn-primary:not(:disabled):hover { background: var(--c-brand-deep); border-color: var(--c-brand-deep); }
+
+    /* Two-stage confirm state — warning-coloured to make the pending
+       confirmation visually obvious. */
+    .btn.is-confirming {
+      background: #b45309 !important;
+      border-color: #b45309 !important;
+      color: #ffffff !important;
+      animation: confirmPulse 1.2s ease-in-out infinite;
+    }
+    .btn.is-confirming:hover { background: #92400e !important; border-color: #92400e !important; }
+    @keyframes confirmPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.45); }
+      50%      { box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.10); }
+    }
+
+    .btn-success { background: #047857; color: #fff; border-color: #047857; }
+    .btn-success:not(:disabled):hover { background: #036549; border-color: #036549; }
+
+    .btn-danger  { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+    .btn-danger:not(:disabled):hover { background: #991919; border-color: #991919; }
+
+    .btn-warning { background: var(--c-surface); color: var(--c-warn); border-color: #fde68a; }
+    .btn-warning:not(:disabled):hover { background: var(--c-warn-soft); border-color: #fcd34d; }
+
+    .btn-secondary { background: var(--c-surface); color: var(--c-text); border-color: var(--c-border-strong); }
+    .btn-secondary:not(:disabled):hover { background: var(--c-surface-alt); border-color: #94a3b8; }
+
+    .btn-ghost { background: transparent; color: var(--c-text); border-color: var(--c-border); }
+    .btn-ghost:not(:disabled):hover { background: var(--c-surface-alt); }
+
+    .btn-block { width: 100%; justify-content: flex-start; }
+
+    .control-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .control-row .btn { flex: 1; min-width: 100px; }
+
+    .helper-note {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--c-surface-alt);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      color: var(--c-text-muted);
+      line-height: 1.55;
+    }
+    .helper-note strong { color: var(--c-text); font-weight: 600; }
+    .helper-note code {
+      font-size: 11px;
+      padding: 1px 4px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-sm);
+      color: var(--c-text);
+    }
+
+    /* -----------------------------------------------------------------
+       Filter bar
+    ----------------------------------------------------------------- */
+    .filter-bar {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label {
+      font-size: 10px; font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field input,
+    .field select {
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--c-border-strong);
+      border-radius: var(--radius-md);
+      background: var(--c-surface);
+      color: var(--c-text);
+      min-width: 140px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--c-accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .field input::placeholder { color: var(--c-text-subtle); }
+
+    .filter-actions { display: inline-flex; gap: 8px; margin-left: auto; }
+
+    /* -----------------------------------------------------------------
+       Results table
+    ----------------------------------------------------------------- */
+    .table-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--c-border);
+      gap: 12px;
+    }
+    .table-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--c-text);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .table-title svg { width: 15px; height: 15px; color: var(--c-text-muted); }
+    .table-count {
+      font-size: 12px;
+      color: var(--c-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: var(--c-surface-alt);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--c-border);
+      white-space: nowrap;
+    }
+    .data-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--c-border);
+      color: var(--c-text);
+      vertical-align: middle;
+      font-variant-numeric: tabular-nums;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: var(--c-surface-alt); }
+
+    .cell-id     { color: var(--c-text-subtle); font-size: 12px; }
+    .cell-mono   { font-family: var(--font-mono); font-size: 12.5px; }
+    .cell-strong { font-weight: 600; }
+    .cell-muted  { color: var(--c-text-muted); }
+    .cell-time   { color: var(--c-text-muted); font-size: 12px; white-space: nowrap; }
+
+    .barcode-link {
+      color: var(--c-accent);
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+    }
+    .barcode-link:hover { text-decoration: underline; }
+
+    /* Flag badges */
+    .flag {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+    }
+    .flag-N    { background: var(--c-ok-soft);   color: var(--c-ok);   border-color: #a7f3d0; }
+    .flag-H,
+    .flag-HH   { background: var(--c-err-soft);  color: var(--c-err);  border-color: #fecaca; }
+    .flag-L,
+    .flag-LL   { background: var(--c-info-soft); color: var(--c-info); border-color: #bfdbfe; }
+    .flag-A    { background: var(--c-warn-soft); color: var(--c-warn); border-color: #fde68a; }
+    .flag-none { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+    /* -----------------------------------------------------------------
+       Pagination
+    ----------------------------------------------------------------- */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid var(--c-border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .pg-info {
+      font-size: 12px;
+      color: var(--c-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .pg-pages { display: inline-flex; align-items: center; gap: 4px; }
+    .pg-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 32px; height: 32px;
+      padding: 0 8px;
+      border-radius: var(--radius-md);
+      font-size: 12px; font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      color: var(--c-text);
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+      font-variant-numeric: tabular-nums;
+    }
+    .pg-btn:hover:not(:disabled) { background: var(--c-surface-alt); border-color: var(--c-border-strong); }
+    .pg-btn.is-current { background: var(--c-brand); color: #fff; border-color: var(--c-brand); }
+    .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pg-ellipsis { padding: 0 6px; color: var(--c-text-subtle); font-size: 12px; }
+
+    /* -----------------------------------------------------------------
+       Empty / loading states
+    ----------------------------------------------------------------- */
+    .placeholder {
+      text-align: center;
+      padding: 56px 24px;
+      color: var(--c-text-muted);
+    }
+    .placeholder-icon {
+      width: 40px; height: 40px;
+      margin: 0 auto 12px;
+      color: var(--c-text-subtle);
+    }
+    .placeholder-icon svg { width: 100%; height: 100%; }
+    .placeholder-title {
+      font-size: 14px; font-weight: 600;
+      color: var(--c-text);
+      margin-bottom: 4px;
+    }
+    .placeholder-text { font-size: 13px; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .spinner-lg { width: 28px; height: 28px; border-width: 3px; color: var(--c-text-subtle); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* -----------------------------------------------------------------
+       Toast
+    ----------------------------------------------------------------- */
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px;
+      z-index: 500;
+      display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      background: var(--c-text);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      box-shadow: var(--shadow-lg);
+      max-width: 360px;
+      display: flex; align-items: flex-start; gap: 10px;
+      animation: toastIn 0.18s ease-out;
+      border-left: 3px solid var(--c-text-muted);
+    }
+    .toast svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+    .toast.is-ok  { background: #064e3b; border-left-color: #10b981; }
+    .toast.is-err { background: #7f1d1d; border-left-color: #ef4444; }
+    @keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* -----------------------------------------------------------------
+       Modal
+    ----------------------------------------------------------------- */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.is-open { display: flex; }
+
+    .modal {
+      background: var(--c-surface);
+      border-radius: var(--radius-lg);
+      width: 720px;
+      max-width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--c-border);
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--c-border);
+      position: sticky; top: 0; background: var(--c-surface); z-index: 1;
+    }
+    .modal-title-wrap { display: flex; align-items: center; gap: 10px; }
+    .modal-title-icon {
+      width: 28px; height: 28px;
+      border-radius: var(--radius-md);
+      background: var(--c-brand-soft);
+      color: var(--c-brand);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-title-icon svg { width: 14px; height: 14px; }
+    .modal-title    { font-size: 14px; font-weight: 600; color: var(--c-text); }
+    .modal-subtitle { font-size: 12px; color: var(--c-text-muted); margin-top: 2px; font-family: var(--font-mono); }
+    .modal-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      width: 30px; height: 30px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--c-border);
+      background: var(--c-surface);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--c-text-muted);
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    .modal-close:hover { background: var(--c-surface-alt); color: var(--c-text); }
+    .modal-close svg { width: 14px; height: 14px; }
+    .modal-body { padding: 18px 20px; }
+
+    .patient-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--c-border);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .patient-cell { background: var(--c-surface-alt); padding: 12px 14px; }
+    .patient-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .patient-value {
+      font-size: 14px; font-weight: 600;
+      color: var(--c-text);
+      margin-top: 4px;
+    }
+    @media (max-width: 580px) { .patient-info { grid-template-columns: 1fr; } }
+
+    .modal-section-title {
+      font-size: 11px; font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .modal .data-table {
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    /* -----------------------------------------------------------------
+       Responsive table wrapper
+    ----------------------------------------------------------------- */
+    .table-scroll { overflow-x: auto; }
+
+    /* -----------------------------------------------------------------
+       Log viewer
+    ----------------------------------------------------------------- */
+    .log-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--c-border);
+      gap: 12px;
+    }
+    .log-title {
+      font-size: 13px; font-weight: 600;
+      color: var(--c-text);
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono);
+    }
+    .log-title svg { width: 14px; height: 14px; color: var(--c-text-muted); }
+    .log-count {
+      font-size: 12px;
+      color: var(--c-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .log-viewer {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      background: #0b1220;
+      color: #cbd5e1;
+      padding: 12px 14px;
+      height: calc(100vh - 320px);
+      min-height: 360px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+    .log-viewer::-webkit-scrollbar { width: 10px; height: 10px; }
+    .log-viewer::-webkit-scrollbar-track { background: #0b1220; }
+    .log-viewer::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border: 2px solid #0b1220;
+      border-radius: 999px;
+    }
+    .log-viewer::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    .log-line {
+      white-space: pre;
+      padding: 1px 0;
+      color: #cbd5e1;
+    }
+    .log-line.lvl-error { color: #fca5a5; }
+    .log-line.lvl-warn  { color: #fcd34d; }
+    .log-line.lvl-info  { color: #93c5fd; }
+    .log-line.lvl-debug { color: #94a3b8; }
+
+    .auto-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--c-text-muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 0 8px;
+    }
+    .auto-toggle input { accent-color: var(--c-accent); cursor: pointer; }
+    .auto-toggle:hover { color: var(--c-text); }
+
+    /* Custom scrollbar (content area only) */
+    .content::-webkit-scrollbar { width: 10px; }
+    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border: 2px solid var(--c-shell-bg);
+      border-radius: 999px;
+    }
+    .content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<!-- ===================================================================
+     Application shell
+=================================================================== -->
+<div class="app-shell">
+
+  <!-- ===========================================================
+       Sidebar
+  =========================================================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3v6l-5 8a3 3 0 0 0 2.6 4.5h10.8A3 3 0 0 0 20 17l-5-8V3" />
+          <path d="M8 3h8" />
+          <path d="M7 13h10" />
+        </svg>
+      </span>
+      <div class="brand-text">
+        <span class="brand-name">SpeciGo LIS</span>
+        <span class="brand-sub">AU480 Engine</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Workspace</div>
+      <div class="nav-item active" id="tab-dashboard-btn" onclick="switchTab('dashboard', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3"  y="3"  width="7" height="9" rx="1" />
+          <rect x="14" y="3"  width="7" height="5" rx="1" />
+          <rect x="14" y="12" width="7" height="9" rx="1" />
+          <rect x="3"  y="16" width="7" height="5" rx="1" />
+        </svg>
+        Dashboard
+      </div>
+      <div class="nav-item" id="tab-results-btn" onclick="openResultsTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="9" y1="21" x2="9" y2="9" />
+        </svg>
+        Results
+      </div>
+      <div class="nav-item" id="tab-logs-btn" onclick="openLogsTab(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="9"  y1="13" x2="15" y2="13" />
+          <line x1="9"  y1="17" x2="15" y2="17" />
+          <line x1="9"  y1="9"  x2="11" y2="9" />
+        </svg>
+        Logs
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span>Build</span>
+      <span class="v">v1.0.0</span>
+    </div>
+  </aside>
+
+  <!-- ===========================================================
+       Topbar
+  =========================================================== -->
+  <header class="topbar">
+    <div class="topbar-title">
+      <span class="topbar-page-title" id="pageTitle">Dashboard</span>
+      <span class="topbar-page-sub"   id="pageSub">Real-time monitoring for the LIS integration engine</span>
+    </div>
+    <div class="topbar-status" id="hStatus" title="Engine status">
+      <span class="status-led" id="hDot"></span>
+      <span id="hLabel">Loading…</span>
+    </div>
+  </header>
+
+  <!-- ===========================================================
+       Content
+  =========================================================== -->
+  <main class="content">
+
+    <!-- ----------------------------------------------------------------
+         Dashboard
+    ----------------------------------------------------------------- -->
+    <div class="tab-pane active" id="tab-dashboard">
+
+      <div class="meta-bar">
+        <div class="meta-left">
+          Engine connection, device health, and processing counters.
+        </div>
+        <div class="meta-right">
+          <span class="pulse-dot"></span>
+          <span>Auto-refresh every 5 s</span>
+        </div>
+      </div>
+
+      <!-- Two-column dashboard -->
+      <div class="dash-grid">
+
+        <!-- Left: engine status detail -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2"  width="20" height="8" rx="2" />
+                <rect x="2" y="14" width="20" height="8" rx="2" />
+                <line x1="6" y1="6"  x2="6.01" y2="6" />
+                <line x1="6" y1="18" x2="6.01" y2="18" />
+              </svg>
+              Engine Status
+            </div>
+            <span class="card-sub">Live snapshot</span>
+          </div>
+          <div class="card-body">
+            <div class="detail-list">
+              <div class="detail-row"><span class="detail-key">Engine state</span><span class="detail-val" id="dState">—</span></div>
+              <div class="detail-row"><span class="detail-key">Serial port</span><span class="detail-val mono" id="dPort">—</span></div>
+              <div class="detail-row"><span class="detail-key">Baud rate</span><span class="detail-val mono" id="dBaud">—</span></div>
+              <div class="detail-row"><span class="detail-key">Serial connection</span><span class="detail-val" id="dSerial">—</span></div>
+              <div class="detail-row"><span class="detail-key">Database</span><span class="detail-val" id="dDb">—</span></div>
+              <div class="detail-row"><span class="detail-key">Analyser model</span><span class="detail-val" id="dModel">—</span></div>
+              <div class="detail-row"><span class="detail-key">Site</span><span class="detail-val" id="dSite">—</span></div>
+              <div class="detail-row"><span class="detail-key">Lab UID</span><span class="detail-val mono" id="dLab">—</span></div>
+              <div class="detail-row"><span class="detail-key">Started at</span><span class="detail-val" id="dStarted">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: controls & quick actions -->
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                Quick Actions
+              </div>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-secondary btn-block" onclick="goToResultsToday()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8"  y1="2" x2="8"  y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                View today's results
+              </button>
+              <button class="btn btn-secondary btn-block" onclick="goToResultsAll()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8"  y1="6"  x2="21" y2="6" />
+                  <line x1="8"  y1="12" x2="21" y2="12" />
+                  <line x1="8"  y1="18" x2="21" y2="18" />
+                  <line x1="3"  y1="6"  x2="3.01" y2="6" />
+                  <line x1="3"  y1="12" x2="3.01" y2="12" />
+                  <line x1="3"  y1="18" x2="3.01" y2="18" />
+                </svg>
+                Browse all results
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------------------------------
+         Results
+    ----------------------------------------------------------------- -->
+    <div class="tab-pane" id="tab-results">
+
+      <div class="filter-bar">
+        <div class="field">
+          <label for="fDate">Date</label>
+          <input type="date" id="fDate" />
+        </div>
+        <div class="field">
+          <label for="fBarcode">Barcode</label>
+          <input type="text" id="fBarcode" placeholder="Sample barcode" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="fParam">Parameter</label>
+          <input type="text" id="fParam" placeholder="TSH, FT4…" autocomplete="off"
+                 style="text-transform: uppercase;"
+                 oninput="this.value = this.value.toUpperCase();" />
+        </div>
+        <div class="field">
+          <label for="fFlag">Flag</label>
+          <select id="fFlag">
+            <option value="ALL">All flags</option>
+            <option value="N">Normal (N)</option>
+            <option value="H">High (H)</option>
+            <option value="HH">Critical High (HH)</option>
+            <option value="L">Low (L)</option>
+            <option value="LL">Critical Low (LL)</option>
+            <option value="A">Abnormal (A)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fLimit">Per page</label>
+          <select id="fLimit" style="min-width: 90px;">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn btn-primary" onclick="loadResults(1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            Search
+          </button>
+          <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-head">
+          <span class="table-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
+            Results
+          </span>
+          <span class="table-count" id="rCount">—</span>
+        </div>
+        <div id="rArea">
+          <div class="placeholder">
+            <div class="placeholder-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <div class="placeholder-title">No results loaded</div>
+            <div class="placeholder-text">Set your filters and click <strong>Search</strong> to load records.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ----------------------------------------------------------------
+         Logs
+    ----------------------------------------------------------------- -->
+    <div class="tab-pane" id="tab-logs">
+
+      <div class="filter-bar">
+        <div class="field">
+          <label for="lLevel">Level</label>
+          <select id="lLevel">
+            <option value="">All levels</option>
+            <option value="ERROR">Error</option>
+            <option value="WARN">Warn</option>
+            <option value="INFO">Info</option>
+            <option value="DEBUG">Debug</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lModule">Module</label>
+          <select id="lModule">
+            <option value="">All modules</option>
+            <option value="INDEX">Index</option>
+            <option value="ENGINE">Engine</option>
+            <option value="SERIAL">Serial</option>
+            <option value="FRAMER">Framer</option>
+            <option value="AU480">Parser</option>
+            <option value="MAPPER">Mapper</option>
+            <option value="WRITER">Writer</option>
+            <option value="PANEL">Panel</option>
+          </select>
+        </div>
+        <div class="field" style="flex: 1; min-width: 200px;">
+          <label for="lSearch">Search</label>
+          <input type="text" id="lSearch" placeholder="Match log line text..." autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="lLimit">Lines</label>
+          <select id="lLimit">
+            <option value="200">200</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <label class="auto-toggle">
+            <input type="checkbox" id="lAuto" checked />
+            <span>Auto-refresh</span>
+          </label>
+          <button class="btn btn-primary" onclick="loadLogs()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 15.2-6.5L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-15.2 6.5L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="log-card">
+        <div class="log-head">
+          <span class="log-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span id="lFile">combined-<today>.log</span>
+          </span>
+          <span class="log-count" id="lCount">—</span>
+        </div>
+        <div class="log-viewer" id="lViewer">
+          <div class="placeholder" style="color: #94a3b8;">
+            <div class="placeholder-text">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+<!-- end app-shell -->
+
+<!-- ===================================================================
+     Toast container
+=================================================================== -->
+<div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ===================================================================
+     Sample detail modal
+=================================================================== -->
+<div class="overlay" id="overlay" onclick="onOverlayClick(event)" role="dialog" aria-modal="true">
+  <div class="modal" id="modalBox">
+    <div class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-title-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <line x1="7"  y1="4" x2="7"  y2="20" />
+            <line x1="11" y1="4" x2="11" y2="20" />
+            <line x1="15" y1="4" x2="15" y2="20" />
+            <line x1="19" y1="4" x2="19" y2="20" />
+          </svg>
+        </span>
+        <div>
+          <div class="modal-title">Sample Detail</div>
+          <div class="modal-subtitle" id="mSubtitle"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btnSendLims" onclick="sendCurrentSampleToLims()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          <span id="btnSendLimsLabel">Send to LIMS</span>
+        </button>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6"  y2="18" />
+            <line x1="6"  y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     Application script
+=================================================================== -->
+<script>
+'use strict';
+
+/* -----------------------------------------------------------------
+   Page metadata for sidebar navigation
+----------------------------------------------------------------- */
+const PAGE_META = {
+  dashboard: {
+    title: 'Dashboard',
+    sub:   'Real-time monitoring for the LIS integration engine'
+  },
+  results: {
+    title: 'Results',
+    sub:   'Browse, filter, and inspect persisted analyser results'
+  },
+  logs: {
+    title: 'Logs',
+    sub:   "Live tail of today's combined log file"
+  }
+};
+
+/* -----------------------------------------------------------------
+   Tab switching
+----------------------------------------------------------------- */
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-pane').forEach((p) => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  const meta = PAGE_META[name];
+  if (meta) {
+    document.getElementById('pageTitle').textContent = meta.title;
+    document.getElementById('pageSub').textContent   = meta.sub;
+  }
+  // Stop log polling when leaving the Logs tab to avoid wasted requests.
+  if (name !== 'logs') stopLogsPolling();
+}
+
+/* -----------------------------------------------------------------
+   Toast notifications
+----------------------------------------------------------------- */
+const TOAST_ICONS = {
+  ok:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  err: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8"  x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8"  x2="12.01" y2="8"/></svg>'
+};
+
+function toast(message, type = 'info', durationMs = 3500) {
+  const wrap = document.getElementById('toastWrap');
+  const el   = document.createElement('div');
+  el.className = 'toast is-' + type;
+  el.innerHTML = (TOAST_ICONS[type] || TOAST_ICONS.info) + '<span>' + escapeHtml(message) + '</span>';
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = '0.25s';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateX(120%)';
+    setTimeout(() => el.remove(), 280);
+  }, durationMs);
+}
+
+/* -----------------------------------------------------------------
+   Engine status polling
+----------------------------------------------------------------- */
+async function fetchStatus() {
+  try {
+    const res  = await fetch('/api/engine/status');
+    const json = await res.json();
+    if (json.success) {
+      renderStatus(json.data);
+    } else {
+      setHeader('is-stopped', 'API error');
+    }
+  } catch {
+    setHeader('is-stopped', 'Offline');
+  }
+}
+
+function renderStatus(s) {
+  if (s.running && s.connected) {
+    setHeader('is-running', 'Running — Connected');
+  } else if (s.running && s.serialRetrying) {
+    setHeader('is-warn', 'Running — Connecting');
+  } else if (s.running) {
+    setHeader('is-warn', 'Running — No Serial');
+  } else {
+    setHeader('is-stopped', 'Stopped');
+  }
+
+  setDetail('dState',
+    s.running ? pillHtml('ok', 'Running') : pillHtml('err', 'Stopped'),
+    null,
+    true
+  );
+  setDetail('dPort', s.port || '—');
+  setDetail('dBaud', s.baudRate ? s.baudRate.toLocaleString() + ' bps' : '—');
+  setDetail('dSerial',
+    s.connected
+      ? pillHtml('ok', 'Connected')
+      : s.serialRetrying
+        ? pillHtml('warn', 'Waiting for device')
+        : s.isReconnecting
+          ? pillHtml('warn', 'Reconnecting')
+          : pillHtml('err', 'Disconnected'),
+    null,
+    true
+  );
+  setDetail('dDb',
+    s.dbReady
+      ? pillHtml('ok', 'Connected')
+      : s.dbRetrying
+        ? pillHtml('warn', 'Connecting')
+        : pillHtml('err', 'Disconnected'),
+    null,
+    true
+  );
+  setDetail('dModel',    s.analyser  || '—');
+  setDetail('dSite',     s.site      || '—');
+  setDetail('dLab',      s.labUid    || '—');
+  setDetail('dStarted',  s.startedAt ? formatDateTime(s.startedAt) : '—');
+}
+
+function setHeader(stateClass, label) {
+  document.getElementById('hDot').className     = 'status-led ' + stateClass;
+  document.getElementById('hLabel').textContent = label;
+}
+
+function setDetail(id, val, cls, isHtml) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (isHtml) {
+    el.innerHTML = val;
+  } else {
+    el.textContent = val;
+  }
+  el.className = 'detail-val' + (cls ? ' ' + cls : '');
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = (val == null ? '—' : val);
+}
+
+function pillHtml(tone, label) {
+  return '<span class="pill ' + tone + '"><span class="led"></span>' + escapeHtml(label) + '</span>';
+}
+
+/* -----------------------------------------------------------------
+   Engine control actions
+----------------------------------------------------------------- */
+/* -----------------------------------------------------------------
+   Sidebar handler for the Results tab.
+   Applies today's date as the default filter on every direct
+   navigation, so the operator immediately sees the current day's data.
+----------------------------------------------------------------- */
+function openResultsTab(el) {
+  document.getElementById('fDate').value    = todayString();
+  document.getElementById('fBarcode').value = '';
+  document.getElementById('fParam').value   = '';
+  document.getElementById('fFlag').value    = 'ALL';
+  switchTab('results', el);
+  loadResults(1);
+  stopLogsPolling();
+}
+
+/* -----------------------------------------------------------------
+   Sidebar handler for the Logs tab.
+   Loads today's combined log file and starts auto-refresh polling.
+----------------------------------------------------------------- */
+function openLogsTab(el) {
+  switchTab('logs', el);
+  loadLogs();
+  startLogsPolling();
+}
+
+/* -----------------------------------------------------------------
+   Quick action navigation
+----------------------------------------------------------------- */
+function goToResultsToday() {
+  document.getElementById('fDate').value    = todayString();
+  document.getElementById('fBarcode').value = '';
+  document.getElementById('fParam').value   = '';
+  document.getElementById('fFlag').value    = 'ALL';
+  switchTab('results', document.getElementById('tab-results-btn'));
+  loadResults(1);
+}
+
+function goToResultsAll() {
+  document.getElementById('fDate').value    = '';
+  document.getElementById('fBarcode').value = '';
+  document.getElementById('fParam').value   = '';
+  document.getElementById('fFlag').value    = 'ALL';
+  switchTab('results', document.getElementById('tab-results-btn'));
+  loadResults(1);
+}
+
+/* -----------------------------------------------------------------
+   Results table
+----------------------------------------------------------------- */
+let currentPage  = 1;
+let currentTotal = 0;
+let currentPages = 1;
+let currentLimit = 50;
+
+async function loadResults(page) {
+  currentPage  = page;
+  currentLimit = parseInt(document.getElementById('fLimit').value, 10) || 50;
+
+  const params  = new URLSearchParams();
+  const date    = document.getElementById('fDate').value;
+  const barcode = document.getElementById('fBarcode').value.trim();
+  const param   = document.getElementById('fParam').value.trim();
+  const flag    = document.getElementById('fFlag').value;
+
+  if (date)            params.set('date',      date);
+  if (barcode)         params.set('barcode',   barcode);
+  if (param)           params.set('parameter', param);
+  if (flag !== 'ALL')  params.set('flag',      flag);
+  params.set('limit', currentLimit);
+  params.set('page',  page);
+
+  const area = document.getElementById('rArea');
+  area.innerHTML =
+    '<div class="placeholder">' +
+      '<div class="spinner spinner-lg" style="display:inline-block; margin-bottom: 12px;"></div>' +
+      '<div class="placeholder-text">Loading results…</div>' +
+    '</div>';
+
+  try {
+    const res  = await fetch('/api/results?' + params.toString());
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Request failed');
+
+    const { results, total, pages } = json.data;
+    currentTotal = total;
+    currentPages = pages;
+
+    document.getElementById('rCount').textContent =
+      total === 0
+        ? 'No records found'
+        : total.toLocaleString() + ' record' + (total !== 1 ? 's' : '');
+
+    if (results.length === 0) {
+      area.innerHTML =
+        '<div class="placeholder">' +
+          '<div class="placeholder-icon">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+              '<path d="M14 2v6h6"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="placeholder-title">No results match your filters</div>' +
+          '<div class="placeholder-text">Try widening the date range or clearing some filters.</div>' +
+        '</div>';
+      return;
+    }
+
+    area.innerHTML = buildTable(results) + buildPagination(page, pages);
+  } catch (err) {
+    area.innerHTML =
+      '<div class="placeholder">' +
+        '<div class="placeholder-icon" style="color: var(--c-err);">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<circle cx="12" cy="12" r="10"/>' +
+            '<line x1="12" y1="8"  x2="12" y2="12"/>' +
+            '<line x1="12" y1="16" x2="12.01" y2="16"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="placeholder-title">Failed to load results</div>' +
+        '<div class="placeholder-text">' + escapeHtml(err.message) + '</div>' +
+      '</div>';
+  }
+}
+
+function buildTable(rows) {
+  const head =
+    '<thead><tr>' +
+      '<th>#</th>' +
+      '<th>Barcode</th>' +
+      '<th>Parameter</th>' +
+      '<th>Value</th>' +
+      '<th>Unit</th>' +
+      '<th>Flag</th>' +
+      '<th>Patient</th>' +
+      '<th>Age</th>' +
+      '<th>Gender</th>' +
+      '<th>Received</th>' +
+    '</tr></thead>';
+
+  const body = rows.map((r) =>
+    '<tr>' +
+      '<td class="cell-id">' + r.id + '</td>' +
+      '<td><a class="barcode-link" onclick="showSample(\'' + escapeAttr(r.barcode_uid) + '\')">' + escapeHtml(r.barcode_uid) + '</a></td>' +
+      '<td class="cell-strong">' + escapeHtml(r.parameter_code) + '</td>' +
+      '<td class="cell-strong">' + escapeHtml(r.value != null ? r.value : '—') + '</td>' +
+      '<td class="cell-muted">' + escapeHtml(r.unit != null ? r.unit : '—') + '</td>' +
+      '<td>' + flagBadge(r.flag) + '</td>' +
+      '<td>' + escapeHtml(r.patient_name != null ? r.patient_name : '—') + '</td>' +
+      '<td>' + formatAge(r.age, r.age_type) + '</td>' +
+      '<td>' + formatGender(r.gender) + '</td>' +
+      '<td class="cell-time">' + (r.received_at ? formatDateTime(r.received_at) : '—') + '</td>' +
+    '</tr>'
+  ).join('');
+
+  return '<div class="table-scroll"><table class="data-table">' + head + '<tbody>' + body + '</tbody></table></div>';
+}
+
+function buildPagination(page, pages) {
+  if (pages <= 1) return '';
+
+  const from = (page - 1) * currentLimit + 1;
+  const to   = Math.min(page * currentLimit, currentTotal);
+
+  let html = '<div class="pagination">';
+  html += '<span class="pg-info">Showing ' + from.toLocaleString() + '–' + to.toLocaleString() +
+          ' of ' + currentTotal.toLocaleString() + '</span>';
+  html += '<div class="pg-pages">';
+  html += '<button class="pg-btn" ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadResults(' + (page - 1) + ')" aria-label="Previous">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>' +
+          '</button>';
+
+  const start = Math.max(1, page - 3);
+  const end   = Math.min(pages, start + 6);
+  if (start > 1) {
+    html += '<button class="pg-btn" onclick="loadResults(1)">1</button>';
+    if (start > 2) html += '<span class="pg-ellipsis">…</span>';
+  }
+  for (let i = start; i <= end; i++) {
+    html += '<button class="pg-btn' + (i === page ? ' is-current' : '') + '" onclick="loadResults(' + i + ')">' + i + '</button>';
+  }
+  if (end < pages) {
+    if (end < pages - 1) html += '<span class="pg-ellipsis">…</span>';
+    html += '<button class="pg-btn" onclick="loadResults(' + pages + ')">' + pages + '</button>';
+  }
+
+  html += '<button class="pg-btn" ' + (page >= pages ? 'disabled' : '') + ' onclick="loadResults(' + (page + 1) + ')" aria-label="Next">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>' +
+          '</button>';
+  html += '</div>';
+  html += '</div>';
+
+  return html;
+}
+
+function clearFilters() {
+  document.getElementById('fDate').value    = '';
+  document.getElementById('fBarcode').value = '';
+  document.getElementById('fParam').value   = '';
+  document.getElementById('fFlag').value    = 'ALL';
+  document.getElementById('fLimit').value   = '50';
+  // Reload with no filters so the operator sees the full dataset instead
+  // of an empty placeholder.
+  loadResults(1);
+}
+
+/* -----------------------------------------------------------------
+   Logs viewer — polls today's combined log file every few seconds
+   and streams the tail into a dark terminal-style panel.
+----------------------------------------------------------------- */
+const LOGS_POLL_MS = 3000;
+let logsPollTimer  = null;
+let logsLoading    = false;
+
+async function loadLogs() {
+  if (logsLoading) return;
+  logsLoading = true;
+
+  const params = new URLSearchParams();
+  const level  = document.getElementById('lLevel').value;
+  const mod    = document.getElementById('lModule').value;
+  const search = document.getElementById('lSearch').value.trim();
+  const limit  = document.getElementById('lLimit').value;
+
+  if (level)  params.set('level',  level);
+  if (mod)    params.set('module', mod);
+  if (search) params.set('search', search);
+  params.set('limit', limit);
+
+  const viewer = document.getElementById('lViewer');
+
+  try {
+    const res  = await fetch('/api/logs/today?' + params.toString());
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Request failed');
+    renderLogs(json.data);
+  } catch (err) {
+    viewer.innerHTML =
+      '<div class="placeholder" style="color:#fca5a5;">' +
+        '<div class="placeholder-text">Failed to load logs: ' + escapeHtml(err.message) + '</div>' +
+      '</div>';
+  } finally {
+    logsLoading = false;
+  }
+}
+
+function renderLogs(data) {
+  const viewer = document.getElementById('lViewer');
+  document.getElementById('lFile').textContent = data.file || ('combined-' + data.date + '.log');
+
+  // Preserve scroll-to-bottom behaviour: if user is already at the bottom
+  // (within 60 px), keep them pinned to the latest line after refresh.
+  const pinToBottom = viewer.scrollTop + viewer.clientHeight >= viewer.scrollHeight - 60;
+
+  if (!data.lines || data.lines.length === 0) {
+    viewer.innerHTML =
+      '<div class="placeholder" style="color:#94a3b8;">' +
+        '<div class="placeholder-text">' + escapeHtml(data.message || 'No log lines match the current filters.') + '</div>' +
+      '</div>';
+    document.getElementById('lCount').textContent = '0 lines';
+    return;
+  }
+
+  const html = data.lines.map((line) => {
+    const cls = detectLogLevel(line);
+    return '<div class="log-line' + (cls ? ' lvl-' + cls : '') + '">' + escapeHtml(line) + '</div>';
+  }).join('');
+  viewer.innerHTML = html;
+
+  if (pinToBottom) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+
+  const matched  = data.totalMatched  != null ? data.totalMatched  : data.lines.length;
+  const returned = data.totalReturned != null ? data.totalReturned : data.lines.length;
+  const suffix   = matched > returned ? ' (showing last ' + returned + ')' : '';
+  document.getElementById('lCount').textContent =
+    matched.toLocaleString() + ' line' + (matched !== 1 ? 's' : '') + suffix +
+    (data.truncated ? ' · file truncated' : '');
+}
+
+function detectLogLevel(line) {
+  if (line.indexOf('[ERROR]') !== -1) return 'error';
+  if (line.indexOf('[WARN]')  !== -1) return 'warn';
+  if (line.indexOf('[INFO]')  !== -1) return 'info';
+  if (line.indexOf('[DEBUG]') !== -1) return 'debug';
+  return '';
+}
+
+function startLogsPolling() {
+  if (logsPollTimer !== null) return;
+  logsPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible')          return;
+    if (!document.getElementById('lAuto').checked)       return;
+    if (!document.getElementById('tab-logs').classList.contains('active')) return;
+    loadLogs();
+  }, LOGS_POLL_MS);
+}
+
+function stopLogsPolling() {
+  if (logsPollTimer === null) return;
+  clearInterval(logsPollTimer);
+  logsPollTimer = null;
+}
+
+/* -----------------------------------------------------------------
+   Sample detail modal
+----------------------------------------------------------------- */
+let currentSampleBarcode = null;
+
+async function showSample(barcode) {
+  currentSampleBarcode = barcode;
+  document.getElementById('mSubtitle').textContent = barcode;
+  document.getElementById('mBody').innerHTML =
+    '<div class="placeholder"><div class="spinner spinner-lg" style="display:inline-block;"></div></div>';
+
+  // Disable Send-to-LIMS until results are confirmed loaded, and clear
+  // any leftover confirmation state from a previous sample.
+  resetSendLimsButton();
+  const sendBtn = document.getElementById('btnSendLims');
+  sendBtn.disabled = true;
+
+  document.getElementById('overlay').classList.add('is-open');
+
+  try {
+    const res  = await fetch('/api/results/barcode/' + encodeURIComponent(barcode));
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Request failed');
+
+    const rows = json.data.results;
+    if (!rows.length) {
+      document.getElementById('mBody').innerHTML =
+        '<div class="placeholder"><div class="placeholder-text">No results found for this sample.</div></div>';
+      return;
+    }
+
+    // Results loaded successfully - allow the user to push them to LIMS.
+    sendBtn.disabled = false;
+
+    const first = rows[0];
+    const patientBlock =
+      '<div class="patient-info">' +
+        '<div class="patient-cell">' +
+          '<div class="patient-label">Patient</div>' +
+          '<div class="patient-value">' + escapeHtml(first.patient_name || '—') + '</div>' +
+        '</div>' +
+        '<div class="patient-cell">' +
+          '<div class="patient-label">Age</div>' +
+          '<div class="patient-value">' + formatAge(first.age, first.age_type) + '</div>' +
+        '</div>' +
+        '<div class="patient-cell">' +
+          '<div class="patient-label">Gender</div>' +
+          '<div class="patient-value">' + formatGender(first.gender) + '</div>' +
+        '</div>' +
+      '</div>';
+
+    const tableRows = rows.map((r) =>
+      '<tr>' +
+        '<td class="cell-strong">' + escapeHtml(r.parameter_code) + '</td>' +
+        '<td class="cell-strong">' + escapeHtml(r.value != null ? r.value : '—') + '</td>' +
+        '<td class="cell-muted">' + escapeHtml(r.unit != null ? r.unit : '—') + '</td>' +
+        '<td>' + flagBadge(r.flag) + '</td>' +
+        '<td class="cell-time">' + (r.received_at ? formatDateTime(r.received_at) : '—') + '</td>' +
+      '</tr>'
+    ).join('');
+
+    document.getElementById('mBody').innerHTML =
+      patientBlock +
+      '<div class="modal-section-title">Parameters (' + rows.length + ')</div>' +
+      '<div class="table-scroll">' +
+        '<table class="data-table">' +
+          '<thead><tr>' +
+            '<th>Parameter</th>' +
+            '<th>Value</th>' +
+            '<th>Unit</th>' +
+            '<th>Flag</th>' +
+            '<th>Received</th>' +
+          '</tr></thead>' +
+          '<tbody>' + tableRows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  } catch (err) {
+    document.getElementById('mBody').innerHTML =
+      '<div class="placeholder">' +
+        '<div class="placeholder-title" style="color: var(--c-err);">Failed to load sample</div>' +
+        '<div class="placeholder-text">' + escapeHtml(err.message) + '</div>' +
+      '</div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('is-open');
+  currentSampleBarcode = null;
+  resetSendLimsButton();
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+/* -----------------------------------------------------------------
+   Push the currently-open sample to the configured LIMS API.
+   Reads lims_api credentials server-side from system.config.json.
+
+   Uses a two-stage confirmation pattern to prevent accidental double-
+   sends. First click puts the button into a "Click again to confirm"
+   state for 3 seconds; only the second click actually fires the API
+   call. The state auto-resets if not confirmed in time.
+----------------------------------------------------------------- */
+const SEND_CONFIRM_WINDOW_MS = 3000;
+let sendConfirmTimer    = null;
+let sendConfirmArmed    = false;
+
+function resetSendLimsButton() {
+  const btn   = document.getElementById('btnSendLims');
+  const label = document.getElementById('btnSendLimsLabel');
+  if (sendConfirmTimer) {
+    clearTimeout(sendConfirmTimer);
+    sendConfirmTimer = null;
+  }
+  sendConfirmArmed = false;
+  btn.classList.remove('is-confirming');
+  label.textContent = 'Send to LIMS';
+}
+
+async function sendCurrentSampleToLims() {
+  if (!currentSampleBarcode) {
+    toast('No sample selected.', 'err');
+    return;
+  }
+
+  const btn   = document.getElementById('btnSendLims');
+  const label = document.getElementById('btnSendLimsLabel');
+
+  // Stage 1: arm the button. Wait for a deliberate second click.
+  if (!sendConfirmArmed) {
+    sendConfirmArmed = true;
+    btn.classList.add('is-confirming');
+    label.textContent = 'Click again to confirm';
+    sendConfirmTimer = setTimeout(() => {
+      resetSendLimsButton();
+    }, SEND_CONFIRM_WINDOW_MS);
+    return;
+  }
+
+  // Stage 2: confirmed - clear the arm state and actually send.
+  if (sendConfirmTimer) {
+    clearTimeout(sendConfirmTimer);
+    sendConfirmTimer = null;
+  }
+  sendConfirmArmed = false;
+  btn.classList.remove('is-confirming');
+
+  btn.disabled      = true;
+  label.textContent = 'Sending…';
+
+  try {
+    const res = await fetch(
+      '/api/results/barcode/' + encodeURIComponent(currentSampleBarcode) + '/send-to-lims',
+      { method: 'POST' }
+    );
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Send failed');
+
+    toast(json.data.message || 'Sent to LIMS.', 'ok');
+    label.textContent = 'Sent';
+    // Keep the button disabled briefly so an over-eager double-click is
+    // suppressed, then restore the original label.
+    setTimeout(() => {
+      label.textContent = 'Send to LIMS';
+      btn.disabled = false;
+    }, 1500);
+  } catch (err) {
+    toast(err.message, 'err', 5000);
+    label.textContent = 'Send to LIMS';
+    btn.disabled = false;
+  }
+}
+
+/* -----------------------------------------------------------------
+   Formatting helpers
+----------------------------------------------------------------- */
+function formatDateTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d)) return String(value);
+  const day   = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en', { month: 'short' });
+  const year  = d.getFullYear();
+  const hh    = String(d.getHours()).padStart(2, '0');
+  const mm    = String(d.getMinutes()).padStart(2, '0');
+  const ss    = String(d.getSeconds()).padStart(2, '0');
+  return day + ' ' + month + ' ' + year + ' ' + hh + ':' + mm + ':' + ss;
+}
+
+function formatAge(age, type) {
+  if (age == null) return '—';
+  return age + ' ' + (type === 'M' ? 'mo' : 'yr');
+}
+
+function formatGender(g) {
+  if (!g) return '—';
+  if (g === 'M' || g === 'MALE')   return 'Male';
+  if (g === 'F' || g === 'FEMALE') return 'Female';
+  return escapeHtml(g);
+}
+
+function formatNumber(value) {
+  if (value == null) return '—';
+  if (typeof value === 'number') return value.toLocaleString();
+  return value;
+}
+
+function flagBadge(flag) {
+  if (!flag || flag === '') return '<span class="flag flag-none">—</span>';
+  let cls;
+  if (flag === 'N')                       cls = 'flag-N';
+  else if (flag === 'H' || flag === 'HH') cls = flag === 'HH' ? 'flag-HH' : 'flag-H';
+  else if (flag === 'L' || flag === 'LL') cls = flag === 'LL' ? 'flag-LL' : 'flag-L';
+  else if (flag === 'A')                  cls = 'flag-A';
+  else                                    cls = 'flag-none';
+  return '<span class="flag ' + cls + '">' + escapeHtml(flag) + '</span>';
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* -----------------------------------------------------------------
+   Keyboard shortcuts
+----------------------------------------------------------------- */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+/* -----------------------------------------------------------------
+   Boot — engine status polling that pauses while the tab is hidden.
+----------------------------------------------------------------- */
+const STATUS_POLL_MS = 5000;
+let statusPollTimer  = null;
+
+function startStatusPolling() {
+  if (statusPollTimer !== null) return;
+  statusPollTimer = setInterval(fetchStatus, STATUS_POLL_MS);
+}
+
+function stopStatusPolling() {
+  if (statusPollTimer === null) return;
+  clearInterval(statusPollTimer);
+  statusPollTimer = null;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Refresh immediately on return so the panel does not show stale data
+    // for up to one full poll interval.
+    fetchStatus();
+    startStatusPolling();
+    // If the user left the panel parked on the Logs tab, refresh it too.
+    if (document.getElementById('tab-logs').classList.contains('active')) {
+      loadLogs();
+    }
+  } else {
+    stopStatusPolling();
+  }
+});
+
+(async () => {
+  await fetchStatus();
+  if (document.visibilityState === 'visible') {
+    startStatusPolling();
+  }
+})();
+</script>
+</body>
+</html>

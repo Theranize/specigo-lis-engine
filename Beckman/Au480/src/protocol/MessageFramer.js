@@ -1,64 +1,70 @@
+/**
+ * MessageFramer.js
+ * SpeciGo LIS Integration Engine - Protocol Layer (transport framing)
+ *
+ * Frames raw byte chunks from SerialPortManager into complete AU480 message
+ * bodies. The AU480 wraps every message in:
+ *
+ *     STX <body...> ETX [CK1 CK2 CR LF]
+ *
+ * Confirmed at MMI Diagnostics (08 April 2026):
+ *   - BCC Check is DISABLED. The analyser still appends the trailing
+ *     CK1/CK2/CR/LF bytes but we do not validate them.
+ *   - Frames are emitted on ETX and an ACK (0x06) is sent back so the
+ *     analyser does not retransmit.
+ *
+ * A secondary "line mode" exists (CRLF-terminated lines) for future
+ * deployments of analysers that emit plain ASCII without STX/ETX. Mode
+ * is selected automatically: once any STX byte is observed, the framer
+ * locks into ASTM-style framing for the rest of the run.
+ *
+ * Events emitted:
+ *   'frame' -> (body: Buffer)   The body bytes between STX and ETX (inclusive
+ *                               of neither). One emit per complete frame.
+ *   'error' -> (err: Error)     Framing-level error (oversize body, etc.).
+ */
+
 'use strict';
 
 const { EventEmitter } = require('events');
-const winston = require('winston');
 
-const STX = 2;
-const ETX = 3;
-const CR  = 13;
-const LF  = 10;
+const logger = require('../logger').createLogger('FRAMER');
 
-// Handshake
-const ACK = 6;
-// const NAK = 21; // future use if you enable checksum validation
+// ---------------------------------------------------------------------------
+// Protocol constants
+// ---------------------------------------------------------------------------
+const STX = 0x02;
+const ETX = 0x03;
+const CR  = 0x0D;
+const LF  = 0x0A;
 
-const logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [FRAMER] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    new winston.transports.File({
-      filename: 'logs/serial-error.log',
-      level   : 'error',
-      maxsize : 5 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.File({
-      filename: 'logs/serial-combined.log',
-      maxsize : 10 * 1024 * 1024,
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [FRAMER] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
+const ACK = 0x06;
+// const NAK = 0x15;   // reserved for the day BCC validation is enabled
 
+// ---------------------------------------------------------------------------
+// MessageFramer class
+// ---------------------------------------------------------------------------
 class MessageFramer extends EventEmitter {
+
+  /**
+   * @param {object}   options
+   * @param {Function} options.writeFn       - async (Buffer) => void; used to send ACK
+   * @param {boolean}  [options.bccCheck=false] - reserved; not currently validated
+   * @param {number}   [options.maxBytes=4096]  - max body length before discard
+   * @param {string}   [options.mode='auto']    - 'auto' | 'astm' | 'line'
+   * @param {string}   [options.analyzerUid]
+   * @param {string}   [options.labUid]
+   */
   constructor(options = {}) {
     super();
 
-    this._writeFn = typeof options.writeFn === 'function' ? options.writeFn : null;
+    this._writeFn  = typeof options.writeFn === 'function' ? options.writeFn : null;
     this._bccCheck = options.bccCheck === true;
     this._maxBytes = Number.isFinite(options.maxBytes) ? options.maxBytes : 4096;
-    this._mode = options.mode || 'auto';
+    this._mode     = options.mode || 'auto';
 
     this._analyzerUid = options.analyzerUid || 'unknown';
-    this._labUid = options.labUid || 'unknown';
+    this._labUid      = options.labUid      || 'unknown';
 
     this._stats = {
       chunksIngested: 0,
@@ -76,23 +82,25 @@ class MessageFramer extends EventEmitter {
     this.reset();
 
     logger.info('MessageFramer initialised', {
-      mode: this._mode,
-      bccCheck: this._bccCheck,
-      maxBytes: this._maxBytes,
+      mode       : this._mode,
+      bccCheck   : this._bccCheck,
+      maxBytes   : this._maxBytes,
       analyzerUid: this._analyzerUid,
-      labUid: this._labUid
+      labUid     : this._labUid
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
 
   reset() {
     // ASTM state
     this._state = 'WAIT_STX';
-    this._body = [];
-    this._ck1 = null;
-    this._ck2 = null;
+    this._body  = [];
 
     // Line state
-    this._lineBuf = [];
+    this._lineBuf   = [];
     this._prevWasCR = false;
 
     this._stats.resets++;
@@ -104,7 +112,7 @@ class MessageFramer extends EventEmitter {
 
   ingest(chunk) {
     if (!Buffer.isBuffer(chunk) || chunk.length === 0) {
-      console.log('MessageFramer.ingest called with invalid chunk; ignoring', { chunk });
+      logger.debug('ingest() called with invalid chunk - ignoring');
       return;
     }
 
@@ -119,15 +127,19 @@ class MessageFramer extends EventEmitter {
         (this._mode === 'auto' && this._stats.sawStxEver);
 
       if (useAstm) this._onByteAstm(b);
-      else this._onByteLine(b);
+      else         this._onByteLine(b);
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Internal - ACK / error helpers
+  // ---------------------------------------------------------------------------
 
   async _sendAck() {
     if (!this._writeFn) return;
     try {
       await this._writeFn(Buffer.from([ACK]));
-      logger.debug('ACK sent', { analyzerUid: this._analyzerUid, labUid: this._labUid });
+      logger.debug('ACK sent');
     } catch (err) {
       logger.warn('Failed to send ACK', { error: err.message });
       // do not reset framing state for write failures
@@ -142,29 +154,26 @@ class MessageFramer extends EventEmitter {
     this.reset();
   }
 
-  // -----------------------------
-  // ASTM-like: STX ... ETX CK CK CR LF
-  // Emits BODY ONLY (STX/ETX stripped) -> parser contract
-  // -----------------------------
+  // ---------------------------------------------------------------------------
+  // ASTM-like framing: STX ... body ... ETX [CK CK CR LF]
+  // BCC is NOT validated at MMI. We emit the frame on ETX and ACK so the
+  // analyser proceeds with the next frame instead of retransmitting.
+  // ---------------------------------------------------------------------------
   _onByteAstm(b) {
-    // resync hard: STX always starts new frame
+    // Hard resync: STX always starts a new frame
     if (b === STX) {
       this._state = 'IN_BODY';
-      this._body = [];
-      this._ck1 = null;
-      this._ck2 = null;
+      this._body  = [];
       return;
     }
 
     switch (this._state) {
       case 'WAIT_STX':
+        // Trailing CK/CR/LF after the prior frame's ETX falls here and is silently dropped
         return;
 
-      case 'IN_BODY':
+      case 'IN_BODY': {
         if (b === ETX) {
-          // this._state = 'WAIT_CK1';
-          // return;
-
           const bodyBuf = Buffer.from(this._body);
 
           this._stats.framesEmitted++;
@@ -175,60 +184,16 @@ class MessageFramer extends EventEmitter {
           void this._sendAck();
 
           this._state = 'WAIT_STX';
-          this._body = [];
-          this._ck1 = null;
-          this._ck2 = null;
-          console.log('Emit>>>>>>>>>>>ted ASTM frame, resetting to WAIT_STX');
+          this._body  = [];
           return;
         }
+
         this._body.push(b);
         if (this._body.length > this._maxBytes) {
           this._emitError('ASTM frame exceeded maxBytes; discarding', { maxBytes: this._maxBytes });
         }
         return;
-
-      case 'WAIT_CK1':
-        this._ck1 = b;
-        this._state = 'WAIT_CK2';
-        return;
-
-      case 'WAIT_CK2':
-        this._ck2 = b;
-        this._state = 'WAIT_CR';
-        return;
-
-      case 'WAIT_CR':
-        if (b !== CR) {
-          this._emitError('ASTM expected CR after checksum', { received: b });
-          return;
-        }
-        this._state = 'WAIT_LF';
-        return;
-
-      case 'WAIT_LF':
-        if (b !== LF) {
-          this._emitError('ASTM expected LF after CR', { received: b });
-          return;
-        }
-
-        // If you later want checksum validation, do it here using ck1/ck2.
-        // For now, just consume them and ACK the frame to stop analyzer retransmits.
-        const bodyBuf = Buffer.from(this._body);
-
-        this._stats.framesEmitted++;
-        this._stats.astmFrames++;
-        this._stats.lastFrameAt = new Date();
-
-        this.emit('frame', bodyBuf);
-
-        // IMPORTANT: ACK after we successfully framed a message
-        void this._sendAck();
-
-        this._state = 'WAIT_STX';
-        this._body = [];
-        this._ck1 = null;
-        this._ck2 = null;
-        return;
+      }
 
       default:
         this.reset();
@@ -236,10 +201,10 @@ class MessageFramer extends EventEmitter {
     }
   }
 
-  // -----------------------------
-  // Line mode: CRLF terminates a record
-  // Emits the line WITHOUT CRLF -> parser contract
-  // -----------------------------
+  // ---------------------------------------------------------------------------
+  // Line framing: CRLF terminates a record
+  // Emits the line WITHOUT CRLF
+  // ---------------------------------------------------------------------------
   _onByteLine(b) {
     if (this._prevWasCR) {
       this._prevWasCR = false;
@@ -282,4 +247,7 @@ class MessageFramer extends EventEmitter {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Module exports
+// ---------------------------------------------------------------------------
 module.exports = MessageFramer;

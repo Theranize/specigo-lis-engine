@@ -2,84 +2,40 @@
  * SerialPortManager.js
  * SpeciGo LIS Integration Engine - Transport Layer
  *
- * Manages the RS-232 serial connection to the Beckman Coulter AU480 analyser.
- * Confirmed settings from MMI Diagnostics (08 April 2026):
- *   Port      : COM2
+ * Manages the RS-232 serial connection to the Beckman Coulter AU480
+ * clinical-chemistry analyser. Confirmed settings from MMI Diagnostics
+ * (08 April 2026) via the AU480 MMI Diagnostics screen photographs:
+ *   Port      : COM4 (USB-SERIAL CH340 adapter)
  *   Baud rate : 9600
  *   Data bits : 8
  *   Parity    : None
  *   Stop bits : 1
  *   Flow ctrl : None
  *
- * This module is an EventEmitter. IntegrationEngine.js subscribes to its events.
- * It does NOT parse data - it only delivers raw byte buffers to the engine.
+ * This module is an EventEmitter. IntegrationEngine subscribes to its
+ * events. It does NOT parse data - it only delivers raw byte buffers to
+ * the engine. It also does NOT implement reconnection logic - the engine
+ * (via ConnectionSupervisor) is the sole owner of retry policy.
+ *
+ * Public API:
+ *   await manager.connect()           - open the serial port
+ *   await manager.disconnect()        - close the port and stop emitting
+ *   await manager.write(buffer)       - write bytes (used by ASTM ACK)
+ *   manager.getStatus()               - snapshot for the dashboard
  *
  * Events emitted:
- *   'connected'      -> ()
- *   'disconnected'   -> (reason: string)
- *   'data'           -> (chunk: Buffer)
- *   'error'          -> (err: Error)
- *   'reconnecting'   -> (attempt: number, delayMs: number)
+ *   'connected'    -> ()
+ *   'disconnected' -> (reason: string)
+ *   'data'         -> (chunk: Buffer)
+ *   'error'        -> (err: Error)
  */
 
 'use strict';
 
 const { EventEmitter } = require('events');
 const { SerialPort }   = require('serialport');
-const winston          = require('winston');
 
-// ---------------------------------------------------------------------------
-// Logger setup
-// All modules in SpeciGo LIS Engine write to the same transport-level log file
-// so that a single tail command shows the full communication sequence.
-// ---------------------------------------------------------------------------
-const logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaStr = Object.keys(meta).length ? ' ' + JSON.stringify(meta) : '';
-      return `[${timestamp}] [SERIAL] [${level.toUpperCase()}] ${message}${metaStr}`;
-    })
-  ),
-  transports: [
-    // Daily rotating file - kept for 14 days to cover any audit window
-    new winston.transports.File({
-      filename: 'logs/serial-error.log',
-      level: 'error',
-      maxsize: 5 * 1024 * 1024,   // 5 MB
-      maxFiles: 14,
-      tailable: true
-    }),
-    new winston.transports.File({
-      filename: 'logs/serial-combined.log',
-      maxsize: 10 * 1024 * 1024,  // 10 MB
-      maxFiles: 14,
-      tailable: true
-    }),
-    // Console transport uses a simpler format for on-site monitoring by Umesh
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-        winston.format.printf(({ timestamp, level, message }) =>
-          `[${timestamp}] [SERIAL] ${level}: ${message}`
-        )
-      )
-    })
-  ]
-});
-
-// ---------------------------------------------------------------------------
-// Reconnection policy constants
-// These values are tuned for a lab environment where the AU480 may be powered
-// off overnight and back on in the morning without manual intervention.
-// ---------------------------------------------------------------------------
-const RECONNECT_INITIAL_DELAY_MS  = 5000;    // 5 s before first retry
-const RECONNECT_MAX_DELAY_MS      = 60000;   // cap at 60 s between retries
-const RECONNECT_BACKOFF_MULTIPLIER = 2;      // exponential back-off factor
-const RECONNECT_MAX_ATTEMPTS       = 0;      // 0 = retry forever (lab service)
+const logger = require('../logger').createLogger('SERIAL');
 
 // ---------------------------------------------------------------------------
 // SerialPortManager class
@@ -87,20 +43,18 @@ const RECONNECT_MAX_ATTEMPTS       = 0;      // 0 = retry forever (lab service)
 class SerialPortManager extends EventEmitter {
 
   /**
-   * @param {object} config - Connection configuration object
-   * @param {string} config.port         - e.g. 'COM2'
+   * @param {object} config
+   * @param {string} config.port         - e.g. 'COM4'
    * @param {number} config.baudRate     - 9600 for AU480
    * @param {number} config.dataBits     - 8
    * @param {number} config.stopBits     - 1
-   * @param {string} config.parity      - 'none'
-   * @param {string} config.flowControl - 'none' (maps to xon/xoff + rtscts both false)
-   * @param {string} config.analyzerUid - Used in log context only
-   * @param {string} config.labUid      - Used in log context only
+   * @param {string} config.parity       - 'none'
+   * @param {string} [config.analyzerUid] - log context only
+   * @param {string} [config.labUid]      - log context only
    */
   constructor(config) {
     super();
 
-    // Validate required fields immediately so deployment errors are caught early
     const required = ['port', 'baudRate', 'dataBits', 'stopBits', 'parity'];
     for (const field of required) {
       if (config[field] === undefined || config[field] === null) {
@@ -110,23 +64,16 @@ class SerialPortManager extends EventEmitter {
 
     this._config = config;
 
-    // State tracking - allows safe polling from the REST status endpoint
-    this._port             = null;
-    this._isOpen           = false;
-    this._isReconnecting   = false;
-    this._reconnectAttempt = 0;
-    this._reconnectTimer   = null;
-    this._destroyed        = false;   // set by destroy() to stop reconnect loop
+    this._port    = null;
+    this._isOpen  = false;
+    this._running = false;
 
-    // Statistics exposed to the dashboard via IntegrationEngine -> API
     this.stats = {
-      bytesReceived      : 0,
-      messagesReceived   : 0,   // incremented by IntegrationEngine, not here
-      connectedAt        : null,
-      disconnectedAt     : null,
-      lastByteAt         : null,
-      reconnectAttempts  : 0,
-      totalConnections   : 0
+      bytesReceived   : 0,
+      connectedAt     : null,
+      disconnectedAt  : null,
+      lastByteAt      : null,
+      totalConnections: 0
     };
 
     logger.info('SerialPortManager initialised', {
@@ -144,119 +91,96 @@ class SerialPortManager extends EventEmitter {
   // Public API
   // ---------------------------------------------------------------------------
 
-  /**
-   * Open the serial port and begin receiving data.
-   * Safe to call multiple times - does nothing if already open.
-   */
   async connect() {
-    if (this._destroyed) {
-      throw new Error('SerialPortManager has been destroyed. Create a new instance.');
-    }
-
     if (this._isOpen) {
       logger.warn('connect() called but port is already open', { port: this._config.port });
       return;
     }
-
-    if (this._isReconnecting) {
-      logger.warn('connect() called while reconnect loop is active - ignoring', {
-        port: this._config.port
-      });
-      return;
-    }
-
-    logger.info('Opening serial port', { port: this._config.port, baudRate: this._config.baudRate });
+    this._running = true;
+    logger.info('Opening serial port', {
+      port    : this._config.port,
+      baudRate: this._config.baudRate
+    });
     await this._openPort();
   }
 
-  /**
-   * Gracefully close the port and stop any reconnection attempts.
-   * Call this on application shutdown.
-   */
   async disconnect() {
-    this._destroyed = true;
-    this._cancelReconnectTimer();
+    this._running = false;
     await this._closePort('manual disconnect');
     logger.info('Serial port disconnected by application request', { port: this._config.port });
   }
 
   /**
-   * Hard close and destroy. Frees OS resources. Instance cannot be reused.
+   * Write raw bytes to the serial port. Rejects when the port is closed.
+   * Used by MessageFramer to send ACK responses.
+   *
+   * @param {Buffer} buffer
+   * @returns {Promise<void>}
    */
-  async destroy() {
-    this._destroyed = true;
-    this._cancelReconnectTimer();
-    if (this._port && this._isOpen) {
-      await this._closePort('destroy');
-    }
-    this._port = null;
-    logger.info('SerialPortManager destroyed', { port: this._config.port });
+  write(buffer) {
+    return new Promise((resolve, reject) => {
+      if (!this._port || !this._isOpen) {
+        return reject(new Error('Cannot write to port: port is not open'));
+      }
+      this._port.write(buffer, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
   }
 
-  /**
-   * Returns a plain object snapshot of current connection state.
-   * Used by the REST API status endpoint.
-   */
   getStatus() {
     return {
-      port             : this._config.port,
-      baudRate         : this._config.baudRate,
-      isOpen           : this._isOpen,
-      isReconnecting   : this._isReconnecting,
-      reconnectAttempt : this._reconnectAttempt,
-      stats            : { ...this.stats }
+      port    : this._config.port,
+      baudRate: this._config.baudRate,
+      isOpen  : this._isOpen,
+      stats   : { ...this.stats }
     };
   }
 
   // ---------------------------------------------------------------------------
-  // Internal - port open / close
+  // Internal - port open
   // ---------------------------------------------------------------------------
 
-  /**
-   * Creates and opens a SerialPort instance with AU480-confirmed settings.
-   * Resolves when the port is open. Rejects if the port cannot be opened.
-   */
-  async _openPort() {
+  _openPort() {
     return new Promise((resolve, reject) => {
-
-      // Build serialport options from config.
-      // flowControl 'none' means both hardware (rtscts) and software (xon) are off.
-      // This matches the AU480 which uses no flow control.
-      const portOptions = {
+      const port = new SerialPort({
         path    : this._config.port,
         baudRate: this._config.baudRate,
         dataBits: this._config.dataBits,
         stopBits: this._config.stopBits,
         parity  : this._config.parity,
-        rtscts  : false,   // hardware flow control OFF - confirmed AU480 setting
-        xon     : false,   // XON/XOFF software flow control OFF
-        xoff    : false,
-        xany    : false,
-        // autoOpen false so we can attach listeners before open() is called
+        rtscts  : this._config.rtscts,
+        xon     : this._config.xon,
+        xoff    : this._config.xoff,
+        // autoOpen MUST be false. The library otherwise opens the port
+        // before our event listeners are attached, which can race the
+        // 'open' event and leave _openPort() hanging forever.
         autoOpen: false
+      });
+
+      // Settle guard. The 'error' event and the open() callback can fire
+      // for the same underlying failure - we resolve / reject exactly once.
+      let settled = false;
+
+      const cleanupFailedPort = () => {
+        try {
+          port.removeAllListeners('open');
+          port.removeAllListeners('data');
+          port.removeAllListeners('error');
+          port.removeAllListeners('close');
+          if (port.isOpen) port.close(() => {});
+          if (typeof port.destroy === 'function') port.destroy();
+        } catch { /* best-effort */ }
       };
 
-      let port;
-      try {
-        port = new SerialPort(portOptions);
-      } catch (err) {
-        // Thrown synchronously if options are invalid (e.g. bad baud rate value)
-        logger.error('Failed to create SerialPort instance', {
-          port : this._config.port,
-          error: err.message
-        });
-        return reject(err);
-      }
-
-      // ------ Attach all event handlers before calling open() ------
-
       port.on('open', () => {
-        this._port     = port;
-        this._isOpen   = true;
-        this._isReconnecting   = false;
-        this._reconnectAttempt = 0;
+        if (settled) return;
+        settled = true;
 
-        this.stats.connectedAt    = new Date();
+        this._port              = port;
+        this._isOpen            = true;
+        this.stats.connectedAt  = new Date();
         this.stats.totalConnections++;
 
         logger.info('Serial port opened successfully', {
@@ -268,18 +192,9 @@ class SerialPortManager extends EventEmitter {
         resolve();
       });
 
-      // 'data' fires for every chunk the OS delivers from the serial buffer.
-      // We forward raw Buffer objects unchanged - framing (STX/ETX) is handled
-      // by MessageFramer.js, not here. This keeps transport and protocol separate.
       port.on('data', (chunk) => {
         this.stats.bytesReceived += chunk.length;
         this.stats.lastByteAt    = new Date();
-
-        logger.debug('Serial data received', {
-          bytes: chunk.length,
-          hex  : chunk.toString('hex').toUpperCase()
-        });
-
         this.emit('data', chunk);
       });
 
@@ -287,51 +202,51 @@ class SerialPortManager extends EventEmitter {
         logger.error('Serial port error', {
           port : this._config.port,
           error: err.message,
-          code : err.code || 'UNKNOWN'
+          code : err.code
         });
-
         this.emit('error', err);
 
-        // If the port was open when this error fired, treat as unexpected disconnect
-        if (this._isOpen) {
-          this._isOpen               = false;
-          this.stats.disconnectedAt  = new Date();
-          this.emit('disconnected', `port error: ${err.message}`);
-          this._scheduleReconnect();
-        } else {
-          // Error during the initial open attempt - reject the connect() promise
-          reject(err);
+        if (!settled) {
+          settled = true;
+          cleanupFailedPort();
+          return reject(err);
         }
+        // Errors after the port was successfully opened: surfaced via the
+        // 'error' event above. The 'close' handler below tells the engine
+        // about the disconnect; the engine (via ConnectionSupervisor)
+        // owns the retry policy.
       });
 
       port.on('close', (err) => {
-        // 'close' fires after open() succeeds, then port closes unexpectedly
-        // OR after we call port.close() ourselves.
         const wasOpen = this._isOpen;
         this._isOpen  = false;
         this.stats.disconnectedAt = new Date();
 
         if (err) {
-          // Disconnected with an error (e.g. USB-to-serial adapter pulled)
           logger.warn('Serial port closed with error', {
             port : this._config.port,
             error: err.message
           });
           this.emit('disconnected', `close error: ${err.message}`);
-
-          if (!this._destroyed && wasOpen) {
-            this._scheduleReconnect();
-          }
         } else {
-          // Clean close - either we called disconnect() or OS closed it
           logger.info('Serial port closed cleanly', { port: this._config.port });
-          this.emit('disconnected', 'clean close');
-          // Do NOT schedule reconnect on a clean close - that would fight the
-          // application trying to shut down orderly.
+          this.emit('disconnected', this._running ? 'unexpected close' : 'clean close');
         }
+
+        // Reject the open promise if close fired before 'open'. This can
+        // happen on systems where a failed open emits close instead of (or
+        // in addition to) error.
+        if (!settled) {
+          settled = true;
+          cleanupFailedPort();
+          return reject(err || new Error('Serial port closed before open completed'));
+        }
+
+        // Note: no internal reconnect. The engine listens for the
+        // 'disconnected' event and decides whether to retry.
+        void wasOpen;
       });
 
-      // Now actually open the port
       port.open((err) => {
         if (err) {
           logger.error('port.open() callback error', {
@@ -339,135 +254,86 @@ class SerialPortManager extends EventEmitter {
             error: err.message,
             code : err.code
           });
-          // 'error' event may also fire - but we reject here to be explicit
-          reject(err);
+          if (!settled) {
+            settled = true;
+            cleanupFailedPort();
+            return reject(err);
+          }
         }
-        // Success case is handled in the 'open' event above
       });
     });
   }
 
-  /**
-   * Closes the port instance cleanly.
-   * Resolves even if the port was already closed (idempotent).
-   */
+  // ---------------------------------------------------------------------------
+  // Internal - port close with Windows handle-release grace period
+  // ---------------------------------------------------------------------------
+
   async _closePort(reason) {
     return new Promise((resolve) => {
-      if (!this._port || !this._isOpen) {
-        logger.debug('_closePort called but port is not open', {
+      const port = this._port;
+
+      if (!port) {
+        logger.debug('_closePort called but no port instance present', {
           port  : this._config.port,
-          reason: reason
+          reason
         });
+        this._isOpen = false;
         return resolve();
       }
 
       logger.info('Closing serial port', { port: this._config.port, reason });
 
-      this._port.close((err) => {
+      // Detach all listeners on the dying port instance so stale
+      // data/error/close events do not interfere with shutdown or with
+      // the next SerialPort instance opened on the same path.
+      port.removeAllListeners('data');
+      port.removeAllListeners('error');
+      port.removeAllListeners('open');
+      port.removeAllListeners('close');
+
+      this._port   = null;
+      this._isOpen = false;
+
+      // Grace period applied AFTER the close callback fires. On Windows
+      // the kernel does not always release the COM handle synchronously;
+      // without this delay an immediate restart on the same COM path can
+      // fail with "Access denied".
+      const PORT_RELEASE_GRACE_MS = 1500;
+      const finish = () => setTimeout(resolve, PORT_RELEASE_GRACE_MS);
+
+      const forceTearDown = () => {
+        try {
+          if (typeof port.destroy === 'function') port.destroy();
+        } catch { /* best-effort */ }
+      };
+
+      const finalize = (err) => {
         if (err) {
-          // Log but do not reject - if we are shutting down, we accept errors here
           logger.warn('Error while closing serial port', {
             port : this._config.port,
-            error: err.message
+            error: err.message,
+            code : err.code
+          });
+        } else {
+          logger.info('Serial port closed - waiting for OS handle release', {
+            port   : this._config.port,
+            graceMs: PORT_RELEASE_GRACE_MS
           });
         }
-        this._isOpen = false;
-        resolve();
-      });
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Internal - reconnection logic
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Schedules a reconnection attempt using exponential back-off.
-   * Backs off from 5 s up to a cap of 60 s to avoid hammering the OS
-   * if the analyser is powered off for an extended period.
-   */
-  _scheduleReconnect() {
-    if (this._destroyed) {
-      logger.debug('Reconnect cancelled - manager is destroyed');
-      return;
-    }
-
-    if (this._isReconnecting) {
-      logger.debug('Reconnect already scheduled - skipping duplicate');
-      return;
-    }
-
-    this._isReconnecting = true;
-    this._reconnectAttempt++;
-    this.stats.reconnectAttempts++;
-
-    // Exponential back-off with jitter (+/- 500 ms) to avoid thundering-herd
-    // if multiple integration instances restart at the same time.
-    const baseDelay = Math.min(
-      RECONNECT_INITIAL_DELAY_MS * Math.pow(RECONNECT_BACKOFF_MULTIPLIER, this._reconnectAttempt - 1),
-      RECONNECT_MAX_DELAY_MS
-    );
-    const jitter    = Math.floor(Math.random() * 1000) - 500;
-    const delay     = Math.max(1000, baseDelay + jitter);   // minimum 1 s
-
-    logger.info('Scheduling reconnection attempt', {
-      port   : this._config.port,
-      attempt: this._reconnectAttempt,
-      delayMs: delay
-    });
-
-    this.emit('reconnecting', this._reconnectAttempt, delay);
-
-    this._reconnectTimer = setTimeout(async () => {
-      this._reconnectTimer = null;
-
-      if (this._destroyed) {
-        logger.debug('Reconnect timer fired but manager is destroyed - aborting');
-        return;
-      }
-
-      logger.info('Attempting to reconnect', {
-        port   : this._config.port,
-        attempt: this._reconnectAttempt
-      });
+        forceTearDown();
+        finish();
+      };
 
       try {
-        // Reset reconnecting flag before _openPort so that the 'error' handler
-        // inside _openPort can schedule the NEXT reconnect correctly.
-        this._isReconnecting = false;
-        await this._openPort();
-        // On success the 'open' event resets _reconnectAttempt to 0
-        logger.info('Reconnection successful', {
-          port   : this._config.port,
-          attempt: this._reconnectAttempt
-        });
-      } catch (err) {
-        logger.warn('Reconnection attempt failed', {
-          port   : this._config.port,
-          attempt: this._reconnectAttempt,
-          error  : err.message
-        });
-        // _openPort's error handler will have called _scheduleReconnect again
-        // BUT only if _isOpen was true when the error fired. Since we never
-        // got to 'open', we need to schedule explicitly here.
-        if (!this._isOpen && !this._isReconnecting && !this._destroyed) {
-          this._scheduleReconnect();
+        if (typeof port.isOpen === 'boolean' ? port.isOpen : true) {
+          port.close(finalize);
+        } else {
+          finalize();
         }
+      } catch (err) {
+        finalize(err);
       }
-    }, delay);
-  }
-
-  /**
-   * Cancels any pending reconnect timer.
-   * Must be called before a clean shutdown.
-   */
-  _cancelReconnectTimer() {
-    if (this._reconnectTimer) {
-      clearTimeout(this._reconnectTimer);
-      this._reconnectTimer = null;
-      this._isReconnecting = false;
-      logger.debug('Reconnect timer cancelled', { port: this._config.port });
-    }
+    });
   }
 }
 
