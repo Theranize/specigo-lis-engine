@@ -7,7 +7,9 @@
       "Bash(npm --version)",
       "Bash(npm install *)",
       "Bash(node *)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "Bash(pdfinfo \"docs/research/BS-230_Operation Manual_V8.0_EN \\(1\\).pdf\")",
+      "Bash(findstr /i \"Pages\")"
     ]
   }
 }

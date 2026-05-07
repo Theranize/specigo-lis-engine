@@ -1,0 +1,4262 @@
+Chemistry Analyzer
+
+Host Interface
+         Manual
+               © 2009-2014 Shenzhen Mindray Bio-medical Electronics Co., Ltd. All rights
+               Reserved.
+
+               For this Operator's Manual, the issue date is 2014-03
+
+Intellectual Property Statement
+
+               SHENZHEN MINDRAY BIO-MEDICAL ELECTRONICS CO., LTD. (hereinafter
+               called Mindray) owns the intellectual property rights to this Mindray product and
+               this manual. This manual may refer to information protected by copyright or patents
+               and does not convey any license under the patent rights or copyright of Mindray, or
+               of others.
+
+               Mindray intends to maintain the contents of this manual as confidential information.
+               Disclosure of the information in this manual in any manner whatsoever without the
+               written permission of Mindray is strictly forbidden.
+
+               Release, amendment, reproduction, distribution, rental, adaptation, translation or
+               any other derivative work of this manual in any manner whatsoever without the
+               written permission of Mindray is strictly forbidden.
+
+,  ,  ,                                   ,
+
+BeneView, WATO, BeneHeart, are the trademarks, registered or otherwise, of
+Mindray in China and other countries. All other trademarks that appear in this
+manual are used only for informational or editorial purposes. They are the property
+of their respective owners.
+
+Responsibility on the Manufacturer Party
+
+Contents of this manual are subject to change without prior notice.
+
+All information contained in this manual is believed to be correct. Mindray shall not
+be liable for errors contained herein or for incidental or consequential damages in
+connection with the furnishing, performance, or use of this manual.
+
+Mindray is responsible for the effects on safety, reliability and performance of this
+product, only if:
+
+ all installation operations, expansions, changes, modifications and repairs of this
+    product are conducted by Mindray authorized personnel;
+
+ the electrical installation of the relevant room complies with the applicable
+    national and local requirements; and
+
+ the product is used in accordance with the instructions for use.
+
+WARNING:
+
+It is important for the hospital or organization that employs this
+equipment to carry out a reasonable service/maintenance plan.
+Neglect of this may result in machine breakdown or personal injury.
+
+   i
+                   NOTE:
+
+                   This equipment must be operated by skilled/trained clinical
+                   professionals.
+
+Warranty
+
+               THIS WARRANTY IS EXCLUSIVE AND IS IN LIEU OF ALL OTHER
+               WARRANTIES, EXPRESSED OR IMPLIED, INCLUDING WARRANTIES OF
+               MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE.
+
+Exemptions
+
+               Mindray's obligation or liability under this warranty does not include any
+               transportation or other charges or liability for direct, indirect or consequential
+               damages or delay resulting from the improper use or application of the product or
+               the use of parts or accessories not approved by Mindray or repairs by people other
+               than Mindray authorized personnel.
+
+               This warranty shall not extend to:
+
+               Malfunction or damage caused by improper use or man-made failure.
+               Malfunction or damage caused by unstable or out-of-range power input.
+               Malfunction or damage caused by force majeure such as fire and earthquake.
+               Malfunction or damage caused by improper operation or repair by unqualified or
+
+                   unauthorized service people.
+               Malfunction of the instrument or part whose serial number is not legible enough.
+               Others not caused by instrument or part itself.
+
+Customer Service Department
+
+Manufacturer:                Shenzhen Mindray Bio-Medical Electronics Co., Ltd.
+
+Address:                     Mindray Building,Keji 12th Road South,High-tech industrial
+                             park,Nanshan,Shenzhen 518057,P.R.China
+
+Website:                     www.mindray.com
+
+E-mail Address: service@mindray.com
+
+Tel:                         +86 755 81888998
+
+Fax:                         +86 755 26582680
+
+EC Representative
+
+EC-Representative: Shanghai International Holding Corp. GmbH (Europe)
+
+Address:                     Eiffestrae 80, 20537 Hamburg, Germany
+
+Tel:                         0049-40-2513175
+
+Fax:                         0049-40-255726
+
+                             ii
+                      Foreword
+
+Who Should Read This Manual
+
+This manual is written for LIS (Laboratory Information Management System)
+developers and those who need to learn the HL7 interface or ASTM interface used
+by Mindray. Instructions are provided in this manual for LIS developers to guide
+them to develop LIS interface that enables their LIS to communicate with the
+analyzer of Mindray. The developers are expected to have knowledge of LIS, HL7
+or ASTM standards, and capacity of network programming. The communication
+protocol is TCP/IP for network layer and HL7 version 2.3.1 or ASTM E1394-97 for
+application layer.LIS developers are recommended to develop the LIS interface
+using Visual C++, Visual Basic, etc. in the Windows operating system.
+
+What Can You Find in This Manual
+
+This manual introduces the HL7 interface and ASTM interface protocols used by
+ Mindray. The manual is divided into two parts, the first is to introduce HL7 protocol,
+ the second part is to introduce ASTM protocol. Each part is divided into 3 sections.
+ For the first part, the first section is a general description of Mindray HL7 interface;
+ the second section introduces Bidirectional Communication between the analyzer
+ and LIS (sending test result and acquiring sample request information from LIS);
+ the 3rd section introduces the communication process and gives some message
+ samples. For the second part, the first section is a general description of Mindray
+ ASTM interface; the second section introduces Bidirectional Communication
+ between the analyzer and LIS (sending test result and acquiring sample request
+ information from LIS); the 3rd section introduces the communication process and
+ gives some message samples.
+
+Conventions Used in This Manual
+
+This chart explains the symbols used in this manual.
+
+When you see...  Description
+
+           NOTE  Read the statement following the symbol. The
+                 statement is alerting you to information that
+                 requires your attention.
+
+                 III
+IV
+          Contents
+
+Foreword .......................................................................................................III
+
+Who Should Read This Manual ..................................................................................... III
+What Can You Find in This Manual ............................................................................... III
+Conventions Used in This Manual ................................................................................. III
+
+Contents ........................................................................................................ V
+
+1 Mindray HL7 Interface .......................................................................1-1
+
+1.1 Mindray HL7 Interface....................................................................................... 1-1
+
+1.1.1  Messages Compatible with HL7 Interface ........................................... 1-1
+1.1.2  HL7 Lower Layer Protocol ................................................................... 1-1
+1.1.3  Minimal Lower Layer Protocol (MLLP)................................................. 1-3
+
+1.2 Bidirectional Communication ............................................................................ 1-4
+
+1.2.1  Introduction .......................................................................................... 1-4
+1.2.2  Message Grammar .............................................................................. 1-5
+1.2.3  Compatible HL7 Messages.................................................................. 1-6
+1.2.4  Message Segment ............................................................................... 1-9
+1.2.5  Adding and Rerunning Tests .............................................................. 1-27
+
+1.3 Communication Process and Message Example ........................................... 1-27
+
+1.3.1  Example of Result Sending Message ................................................ 1-27
+1.3.2  Example of Querying and Downloading Sample ............................... 1-30
+1.3.3  Example of Sending Samples to LIS ................................................. 1-44
+
+2 Mindray ASTM Interface ....................................................................2-1
+
+2.1 Mindray ASTM Interface ................................................................................... 2-1
+         2.1.1 Mindray ASTM Protocol ....................................................................... 2-1
+         2.1.2 The Sending and Receiving Procedure of the Protocol....................... 2-1
+         2.1.3 ASTM Protocol Communication Mode................................................. 2-2
+
+2.2 ASTM Communication ...................................................................................... 2-7
+         2.2.1 The Introduction to ASTM Protocol ...................................................... 2-7
+         2.2.2 ASTM Data Frame Format................................................................... 2-9
+         2.2.3 The Introduction of the ASTM Record Type....................................... 2-10
+
+2.3 Communication Process and Message Example ........................................... 2-30
+         2.3.1 Send Sample Test Result................................................................... 2-30
+
+       V
+2.3.2 Sending Sample Inquiry..................................................................... 2-32
+2.3.3 Return inquired sample and downloaded sample ............................. 2-33
+
+                                   VI
+   1 Mindray HL7 Interface
+
+1.1 Mindray HL7 Interface
+
+               HL7 interface is developed by Mindray for the Chemistry Analyzer to adapt to the
+               prevailing Laboratory Information Management System (LIS). It provides a channel
+               for IP-based networks. With TCP/IP, the LIS host can receive test results from
+               chemistry analyzers, which also send patient information, sample information and
+               test results to LIS in real-time or batch mode. Therefore, users can identify samples
+               by both scanning sample bar code and downloading from LIS host. All data are
+               transmitted in format of HL7 v2.3.1. This interface enables bidirectional
+               communication between the chemistry analyzer and the LIS host
+
+1.1.1 Messages Compatible with HL7 Interface
+
+               HL7, a transmission standard for electronic data and providing nurse for inpatients,
+               was first defined by Americans and now has been applied by many countries.
+
+                   Mindray HL7 interface is defined based upon HL7 v2.3.1. Refer to HL7 Interface
+               Standards Version 2.3.1 for details.
+
+               Only portion of the messages, segments and other data defined are used for
+               Mindray HL7 interface that needs only part of these data.
+
+1.1.2 HL7 Lower Layer Protocol
+
+               TCP/IP is a byte stream protocol, which does not provide message border.HL7 is a
+               higher layer protocol that is based upon messages but provides no message
+               termination mechanism. To determine the message border, we have employed the
+               minimal lower layer protocol. Refer to HL7 Interface Standards Version 2.3.1 for
+               details.
+
+               Communication Layer
+
+                                                  1-1
+The messages are transmitted in format of:
+<SB> ddddd <EB><CR>
+Where,
+<SB> = Start Block character (1 byte)
+ASCII <VT>, namely <0x0B>, must not be confused with the SOH or STX in ASCII.
+ddddd = Data (variable number of bytes)
+ddddd is an HL7 message, which only includes ISO 8859-1 characters
+(hexadecimal 20-FF) and <CR>, exclusive of other control characters and those
+that cannot be printed out.
+<EB> = End Block character (1 byte)
+ASCII <FS>, namely <0x1C >, must not be confused with the ETX or EOT in ASCII.
+<CR> = Carriage Return (1 byte)
+Enter character in ASCII is <0x0D>.
+Minimal Lower Layer Protocol (MLLP)
+The interface supports Minimal Lower Layer Protocol (MLLP) of HL7 and is a
+package mode of HL7 message. HL7 messages are encapsulated with a single
+character at the beginning and a dual character. The characters used by the HL7
+interface are default in the HL7 standard.
+Start character: Hexadecimal <0B>
+End character: Hexadecimal <1C><0D>
+
+                                     1-2
+               ASCII Code Table:
+
+1.1.3 Minimal Lower Layer Protocol (MLLP)
+
+               The interface supports Minimal Lower Layer Protocol (MLLP) of HL7 and is a
+               package mode of HL7 message. HL7 messages are encapsulated with a single
+               character at the beginning and a dual character in the end. The characters used by
+               the HL7 interface are default in the HL7 standard.
+               Start character: Hexadecimal <0B>
+               End character: Hexadecimal <1C><0D>
+
+                                                  1-3
+The detailed data format is shown in the figure below:
+
+            1Byte                            n Byte               1Byte                     1Byte
+        Start Block                  Message Data String
+         Character                                                End Block                 Carriage
+                                                      n + 3 Byte  Character                  Return
+0x0B                                                                                        Character
+
+                                                                         0x1C 0x0D
+
+1 Message Segment String               1Byte    ......            n Message Segment String         Carriage
+                                                                                                    Return
+                                     Carriage                                                      Character
+                                      Return
+                                     Character
+
+MSH|^~\&|||||                        0x0D
+20100316155017||
+ORU^R01|1410|P|2.3.1||||0||ASCII|||
+
+MSH|^~\&|||||20100316155017||ORU^R01|1410|P|2.3.1||||0||ASCII|||
+PID|1410||1952-05-18||Pietrusza Tadeusz||19530316155017||||||||||||||||||||||||
+OBR|1|256122-55|32|Mindray^|N||20100217120412||||||||Serum||Badanie indywidualne||||Badanie indywidualne|||||||||||||||||||||||||||
+OBX|1|NM|25|HDL C|57.000000|mg/dL|40.000000-|Normale|||F||56.786086|20100217120412|Badanie indywidualne|B.Bartkowska-Abdul||
+
+1.2 Bidirectional Communication
+
+               Communication here concerns result sending and sample information downloading.
+               The former means the analyzer transmits the measurement data to an external
+               system (such as the LIS).There are two types of transmission: real-time and batch.
+               Batch-mode transmission is not allowed in two conditions: 1) Real-time mode is
+               enabled; 2) The system is in testing status. The latter means the analyzer
+               downloads sample information from LIS in real-time or batch mode. Real-time
+               mode can be achieved only if a sample bar code reader is equipped. Batch-mode
+               downloading refers to retrieving samples in certain period of the day.
+
+1.2.1 Introduction
+
+               This chapter introduces the message types (Ver. 2.3.1) used by Mindray HL7
+               interface.
+
+                          NOTE
+
+                               HL7 supports many types of messages, but only 5 of them are
+                               employed on the Mindray HL7 interface.
+
+               The following sections introduce the common grammars in detail.
+
+                                     1-4
+1.2.2 Message Grammar
+
+               This section introduces the general grammar of Mindray HL7 interface.
+
+                              NOTE
+
+                                    For complete and detailed descriptions of HL7 message
+                                    grammar, refer to the HL7 standard written by the HL7
+                                    standard committee.
+
+Each HL7 message is composed of segments that end with <CR>.
+
+Each segment consists of a name (three characters) and fixed variable fields that
+are composed of components and subcomponents. The separators of each
+element are defined in the MSH segment in every message.
+
+For instance,
+
+MSH|^~\&|Mindray|BS-XXX|||20060427194802||ORU^R01|1|P|2.3.1||||0||ASCII|||
+
+Where,
+
+The five characters following MSH are defined as delimiters to separate the fields,
+components and subcomponents. Mindray HL7 standard uses the following
+characters:
+
+Character      Description
+|              Field separator
+^              Component separator
+&              Subcomponent separator
+~              Repetition separator
+\              Escape character
+
+The first field of MSH include all the separators. MSH has the first field include all
+separators with most of the other fields empty that are optional and not used by
+Mindray HL7 interface.
+
+Field 9        Includes message types (ORU, R01)
+Field 10       Includes an unique text string to indicate message ID
+Field 11       Includes processing ID (P refers to product)
+Field 12       Defines the version of HL7 (2.3.1) for the message
+
+The order of the segments following MSH in every message is specially specified.
+A segment is defined as optional or to be repeated by using the following grammar:
+[ ] indicates the segment in it is optional.
+{ } indicates the segment in it can be repeated for 0 or 1 time or more.
+
+                                     1-5
+1.2.3 Compatible HL7 Messages
+
+               All messages used for HL7 interface include ORU, ACK, QRY, QCK and DSR.
+               Test results are transferred as follows:
+
+        ORU^R01
+
+BS-XXX                                                 LIS
+
+        ACK^R01
+
+Sample information is downloaded from LIS as follows:
+
+Details are explained in the following.
+ORU^R01: result of patient sample (including control sample) / ressponse.
+The analyzer sends test results to the LIS host through an ORU^R01 message.
+When receiving test results successfully, the LIS host shall send an ACK^R01
+message to the analyzer; otherwise the analyzer may deem the results not
+received and will send them again for at most 3 times with alarm.
+An ORU^R01 message for sample test result includes:
+- Patient information (patient name, sample ID, etc)
+- Doctor's order (sample type, sender, tester, clinical diagnosis, etc)
+- Test results
+It is a group of messages. When the number of the samples is less or equal to
+80test results, one sample is corresponding to one message; but when the number
+of the samples is higher than 80. The test result will be split to several messages to
+be sent.
+
+                                     1-6
+The structure of an ORU message is as follows:                Description
+      ORU Observational Results (Unsolicited)        Message Header
+      MSH                                        Patient Identification
+      PID                                        Observation report
+      OBR                                        Observation/Result
+      {OBX}
+
+An ORU^R01 message for calibration test result includes:
+
+- Test information (test No., test name)
+
+- Calibration rule, calibration date
+
+- Information related to calibrator (number, sequence No., name, lot No., expiration
+date, concentration, etc)
+
+- Calibration result (response, number of calibration parameters, calibration
+parameters)
+
+All calibration test results of a test can be transferred via one message. The LIS
+host is able to choose any of the information in the message as needed.
+
+An ORU^R01 message for QC test result includes:
+
+- Test information (test No., test name)
+
+- Information related to control (number, sequence No., name, lot No., expiration
+date, mean concentration)
+
+- Test date, test results (concentration)
+
+All QC test results of a test can be transferred via one message. The LIS host is
+able to choose any of the information in the message as needed.
+
+The calibration and QC test results are transferred as follows:
+
+ORU Observational Results (Unsolicited)          Description
+
+MSH                                              Message Header
+
+OBR  Observation report(calibration and QC)
+
+                                      1-7
+ACK^R01 message is used to respond to the ORU message. The structure is as
+follows:
+
+ACK       Acknowledgment        Description
+
+MSH                             Message Header
+
+MSA                             Message Acknowledgment
+
+QRY/QCK: Query/Query acknowledgment
+
+QRY^Q02 message is used for sample information query on LIS and has an event
+Q02.The structure of QRY message is as follows:
+
+QRY       Query                                 Description MSH
+                                Message Header
+QRD
+QRF                                            Query Definition
+
+                                                     Query Filter
+
+QCK^Q02 message is used to respond to the QRY message. The structure is as
+follows:
+
+     QCK  Query Acknowledgment  Description
+
+MSH                             Message Header
+
+MSA                             Message Acknowledgment
+
+ERR                             Error
+
+QAK                             Query Acknowledgment
+
+                          1-8
+DSR/ACK: Display response/ Acknowledgment
+
+DSR^Q03 message sends and displays searched results, i.e. send sample
+information from LIS to the analyzer. The structure of DSR message is as follows:
+
+DSR    Display Response                    Description
+
+MSH                                        Message Header
+
+MSA                                        Message Acknowledgment
+
+ERR                                                        Error
+
+QAK                                        Query Acknowledgment
+
+QRD                                        Query Definition
+
+QRF                                                     Query Filter
+
+{DSP}                                      Display Data
+
+DSC                                        Continuation Pointer
+
+ACK^Q03 message is used to respond to the DSR message.
+
+ACK    Acknowledgment                                   Description
+
+MSH                                        Message Header
+
+MSA                                        Message Acknowledgment
+
+ERR                                                        Error
+
+1.2.4 Message Segment
+
+This section describes the components of each segment:
+
+- Field length
+
+- Description
+
+All fields used in message segment are listed in following tables. The numbers
+followed by a `#' symbol indicate the optional fields according to the HL7 protocol.
+
+       NOTE
+
+       All fields of the Mindray HL7 interface are provided for function
+       extension in future although some of the fields are void.
+
+MSH Message Header
+
+               All HL7 messages begin with MSH, which is the first segment of an HL7 message
+               and always located at the beginning of the message. The MSH segment defines
+               the intention, source, purpose and grammar of the message.
+
+                         1-9
+The MSH segment of Mindray HL7 interface message uses the following fields:
+
+No. Field             Length  Description
+1# Field Separator    1
+                              Includes the separator between
+                              segment ID and the first real field, and
+                              defines the field separators (|) of the
+                              remaining part of the message.
+
+2# Encoding Characters 4      Includes component, repetition, escape
+                              and subcomponent separators (^~\&).
+
+3 Sending Application 180     Void and reserved.Sending application
+
+4 Sending Facility    180     Void and reserved.Sending facility, set
+
+                              to machine type.
+
+5 Receiving Application 180   Void and reserved. Receiving
+                              application.
+
+6 Receiving Facility  180     Void and reserved. Receiving facility.
+
+7 Date/Time           Of 26   Time of the current message. Calling
+        Message               the system time.
+
+8 Security            40      Void and reserved. Security.
+
+9# Message Type       7       Type of the message, such as
+
+                              ORU^R01.
+
+10# Message Control ID 20     Message control ID. Indicates one
+                              message each and increases from 1
+                              with message increasing.
+
+11# Processing ID     3       Processing ID. Always set to P
+
+                              (product).
+
+12# Version ID        60      Version ID. Version of HL7 protocol:
+
+                              2.3.1.
+
+13 Sequence Number 15         Void and reserved. Sequence number
+
+14 Continuation Pointer 180   Void and reserved. Continuation pointer
+
+15 Accept             2       Type of accepted acknowledgment,
+                              only valid for DSR^Q03 message. The
+Acknowledgment                value is P, stating for the sample
+                              information sent by LIS. Other values
+Type                          state for sample information
+                              corresponded by LIS. It can be void.
+
+16 Application        2       Type of application response, used as
+
+Acknowledgment                result      type.0-Sample           result;
+
+Type                          1-Calibration result; 2-QC result.
+
+17 Country Code       2       Void and reserved. Country code
+
+18 Character Set      10      Character set. ASCII is used.
+
+19 Principal Language 60      Void and reserved. Principle language
+        Of Message            of the message
+
+20 Alternate Character 20     Void and reserved. Handling scheme of
+        Set Handling Scheme   alternate character
+
+                      1-10
+Comments: MSH segment applies to all messages. Fields 3 and 4 are
+determined by LIS manufacturer; fields 5 and 6 are set to "Mindray" and machine
+type; fields 10 and 16 are integers; others are strings. When LIS sends sample
+request information to the chemistry analyzer, the 15 filed should be set to P.
+
+MSA - Message Acknowledgment Segment
+
+The MSA segment of Mindray HL7 interface message uses the following fields:
+
+No. Field             Length    Description
+                      2
+1# Acknowledgment               Confirmation code, AA means
+         Code                   "accept"; AE means "error"; AR means
+                                "refuse".
+
+                                It should be noted that if the LIS host
+                                responses to the analyzer's result
+                                sending with an ACK^R01 message
+                                containing AE or AR, the analyzer may
+                                deem that the LIS host may not
+                                process the results and will send them
+                                again for at most 2 times. It is
+                                recommended that the LIS host use
+                                AA instead of AE or AR.
+
+2# Message Control ID 20        Message control ID, same with that of
+                                MSH message and corresponding to
+                                MSH-10.
+
+3    Text Message     80        Text message, a description of error or
+
+                                reject event .Corresponding to field 6.
+
+                                It can be written into error logs.
+
+4    Expected Sequence 15       Void and reserved. Expected
+                                sequence number.
+     Number
+
+5    Delayed          1         Void and reserved. Delayed
+                                acknowledgment type.
+     Acknowledgment
+
+     Type
+
+6    Error Condition  100       Error condition (status code).
+
+Note: Fields of MSA-6 are introduced as follows.
+
+Status Code Status Text(MSA-3)                    Description/Comment
+(MSA-6)
+                                                  AA
+Succeeded:
+                                                  Succeeded
+0             Message accepted
+                                                  AE
+Error code:
+                                                  Segment sequence is
+100           Segment sequence error              incorrect or required segment
+                                                  is missed.
+101           Required field missing
+                                                  Required field in a segment is
+                                                  missed.
+
+                      1-11
+Status   Code Status Text(MSA-3)             Description/Comment
+(MSA-6)            Data type error
+                                             Data type of a field is
+102                                          incorrect.
+
+103                Table value not found     Table value is not found,
+
+                                             therefore        not       used
+
+                                             temporarily.
+
+Reject code:                                 AR
+
+200                Unsupported message Message type is not
+
+                   type                      supported.
+
+201                Unsupported event code Event code is not supported.
+
+202                Unsupported processing id Processing ID is not
+
+                                             supported.
+
+203                Unsupported version id    Version ID is not supported.
+
+204                Unknown key identifier    Key identifier is unknown,
+
+                                             such as inexistent patient
+
+                                             information.
+
+205                Duplicate key identifier  The key identifier already
+
+                                             exists.
+
+206                Application record locked The transaction could not be
+
+                                             performed at the application
+
+                                             storage level, such as locked
+
+                                             database.
+
+207                Application internal error Unknown application internal
+
+                                             error.
+
+Comments: MSA segment applies to ACK^R01, QCK^Q02 and ACK^Q03
+messages. Fields 4 and 6 are integers, while others are strings.
+
+PID - Patient Identification
+
+PID segment is mainly used to construct the patient information. Mindray HL7
+interface message uses the following fields:
+
+No.           Field            Length        Description
+
+1             Set ID ­ PID 10                Identifies different patient fields
+
+2             Patient ID 20                  Patient ID
+
+3#            Patient          20            Void and reserved.MRN
+
+              Identifier List
+
+4             Alternate        20            Void and reserved.Bed No.
+
+              Patient ID ­
+
+              PID
+
+5#            Patient          48            Name of patient
+
+              Name
+
+6             Mother's         48            Void and reserved.Patient Zone
+
+                               1-12
+No.  Field       Length  Description
+
+     Maiden
+     Name
+
+7    Date/Time of 26     Birth date of the patient (Format:
+
+     Birth               hour, minute and second, such as
+
+                         19830512000000).
+
+8    Sex         1       Gender
+
+                         M for male
+
+                         F for female
+
+                         O for others
+
+                         U for unknown
+
+9    Patient Alias 48    Void and reserved.Blood type (A for
+
+                         blood type A; B for blood type B; AB
+
+                         for blood type AB and O for blood
+
+                         type O). Others are defined by the
+
+                         customers themselves.
+
+10   Race        80      Void and reserved. Race of patient
+
+11   Patient     106     Address of patient
+
+     Address
+
+12   County Code 4       Void and reserved.County code of
+                         patient(postal code)
+
+13   Phone       40      Void and reserved.Phone number
+                         (home) of patient
+     Number -
+
+     Home
+
+14   Phone       40      Void and reserved. Phone number
+                         (business) of patient
+     Number -
+
+     Business
+
+15   Primary     60      Void and reserved. Primary
+                         language of patient
+     Language
+
+16   Marital     80      Void and reserved. Marital status of
+                         patient
+     Status
+
+17   Religion    80      Void and reserved. Religion of
+                         patient
+
+18   Patient     20      Void and reserved.Patient type
+
+     Account
+
+     Number
+
+19   SSN         16      Void and reserved.Social security
+                         number of patient
+     Number
+
+     -Patient
+
+20   Driver's    25      Void and reserved.Payment type of
+                         patient
+     License
+
+     Number ­
+
+     Patient
+
+21   Mother's    20      Void and reserved. Mother's
+                         identifier
+     Identifier
+
+                 1-13
+No.  Field                      Length  Description
+
+22   Ethnic Group 80                    Void and reserved.Ethnic group the
+                                        patient belongs to
+
+23   Birth Place 60                     Void and reserved.Birth place of
+                                        patient
+
+24   Multiple Birth 1                   Void and reserved. Multiple birth
+                                        indicator, Y(yes) or N(no).
+     Indicator
+
+25   Birth Order 2                      Void and reserved. Birth order, an
+                                        integer greater than 0
+
+26   Citizenship 80                     Common remark
+
+27   Veterans                   60      Void and reserved. Veterans
+                                        military status of patient
+     Military
+
+     Status
+
+28   Nationality 80                     Void and reserved.Nationality of
+                                        patient
+
+29   Patient                    26      Void and reserved. Patient death
+                                        date and time
+     Death Date
+
+     and Time
+
+30   Patient                    1       Void and reserved. Patient death
+                                        indicator, Y (yes) or N (no)
+     Death
+
+     Indicator
+
+Comments: The PID segment only applies to the ORU^R01 messages. The 1st and
+25th fields are integers, the 24th and 30th fields are Booleans, and others are strings.
+
+OBR - Observation Request
+
+OBR segment is used to transfer the order information of test report.
+
+Test results of patient sample
+
+When the sample test result is transferred (MSH-16 is 0), the field used in Mindray
+HL7 interface is shown in the following table.
+
+No.  Field                              Length       Description
+                                        10           Identifies different OBR fields
+1    Set ID ­ OBR                       22
+
+2    Placer Order Number                22           Order number of placer, used
+                                                     as sample bar code
+                                        200
+3    Filler Order Number                2            Order number of filler, used
+                                        26           as sample ID
+
+4#   Universal Service ID                            Universal service ID
+                                                     (manufacturer^machine type)
+
+5    Priority                                        STAT. Y for yes and N for no.
+
+6    Requested Date/time                             Requesting        date/time
+
+                                                     (sample collecting time)
+
+                                1-14
+No.  Field                               Length  Description
+                                         26
+7    Observation Date/Time                       Observation date/time, used
+                                                 as testing date/time
+
+8    Observation End Date/Time           26      Void      and       reserved.
+
+                                                 Observation end date/time
+
+                                                 Void and reserved.Collection
+
+9    Collection Volume                   20      Volume. Used for calculation
+
+                                                 manual dilution.
+
+                                                 Collector Identifier. Used as
+
+10   Collector Identifier                60      sample position (sample disk
+
+                                                 No.^sample cup No.)
+
+11   Specimen Action Code                1       Void and reserved. Specimen
+                                                 action code
+
+12   Danger Code                         60      Void and reserved. Danger
+                                                 code
+
+13   Relevant Clinical Info.             300     Clinical diagnosis
+
+14   Specimen Received Date/Time 26              Send D/T
+
+                                                 sample source, used as
+
+15   Specimen Source                     300     sample type. It varies among
+
+                                                 different product.
+
+16   Ordering Provider                   120     Order provider, used as
+                                                 sender
+
+17   Order Callback Phone Number 40              Sending department
+
+                                                 Void and reserved.
+
+18   Placer Field 1                      60      Characteristic of sample
+
+                                                 (icterus, hemolysis and
+
+                                                 lipemia, others are named by
+
+                                                 the customer)
+
+19   Placer Field 2                      60      Void and reserved.Blood bag
+                                                 No.
+
+20   Filler Field 1                      60      Void and reserved.Attending
+                                                 doctor
+
+21   Filler Field 2                      60      Void and reserved.Treating
+                                                 department
+
+22   Result Rpt/Status        Change  ­  26      Void and reserved. Result
+     Date/Time                                   report/status
+                                                 change-date/time
+
+23   Charge to Practice                  40      Void and reserved. Charge to
+                                                 practice
+
+24   Diagnostic Serv Sect ID             10      Void and reserved. Diagnosis
+                                                 ID
+
+25   Result Status                       1       Void and reserved. Status of
+                                                 result
+
+26   Parent Result                       200     Void and reserved. Parent
+                                                 result
+
+                           1-15
+No.  Field                             Length  Description
+                                       200
+27   Quantity/Timing                           Void  and         reserved.
+
+                                               Quantity/time
+
+28   Result Copies To                  150     Void and reserved. Result
+                                               copies
+
+29   Parent                            150     Void and reserved. Parent
+                                               order
+
+30   Transportation Mode               20      Void  and         reserved.
+
+                                               Transportation mode
+
+31   Reason for Study                  300     Void and reserved. Reason
+                                               for study
+
+32   Principal Result Interpreter      200     Void and reserved. Principal
+                                               result interpreter
+
+33   Assistant Result Interpreter      200     Void and reserved. Assistant
+                                               result interpreter
+
+34   Technician                        200     Void  and         reserved.
+
+                                               Technician
+
+35   Transcriptionist                  200     Void  and         reserved.
+
+                                               Transcriptionist
+
+36   Scheduled Date/Time               26      Void  and         reserved.
+
+                                               Scheduled date/time
+
+37   Number of Sample Containers       4       Void and reserved. Number
+                                               of sample containers
+
+38   Transport Logistics of Collected  60      Void and reserved. Transport
+     Sample                                    logistics of collected sample
+
+39   Collector's Comment               200     Void  and         reserved.
+
+                                               Collector's comment
+
+40   Transport            Arrangement 60       Void and reserved. Transport
+     Responsibility                            arrangement responsibility
+
+41   Transport Arranged                30      Void and reserved. Transport
+                                               arranged
+
+42   Escort Required                   1       Void and reserved. Escort
+                                               required
+
+43   Planned Patient         Transport 200     Void and reserved. Planned
+     Comment                                   patient transport comment
+
+44   Ordering Facility Name            60      Void and reserved. Name of
+                                               placer
+
+45   Ordering Facility Address         106     Void and reserved. Address
+                                               of placer
+
+46   Ordering Facility Phone Number 48         Void and reserved. Phone
+                                               number of placer
+
+47   Ordering Provider Address         106     Void and reserved. Address
+                                               of placer provider
+
+                          1-16
+Comments: The segment only applies to the ORU^R01 messages. The 1st, 3rd and
+37th fields are integers, the 9th field is floating number, and others are strings.
+
+Calibration test results
+
+When calibration test results are transferred (MSH-16 is 1), the applied fields
+include:
+
+No.  Field                       Length Description
+
+1    Set ID ­ OBR                10     Identifies different OBR fields
+
+2    Placer Order Number         22     Order number of placer, used as
+
+                                        test No.
+
+3    Filler Order Number         22     Order number of filler, used as test
+
+                                        name
+
+4#   Universal Service ID        200    Universal        Service                     ID
+
+                                        (manufacturer^machine type)
+
+5    Priority                    2      Void and reserved. Priority
+
+6    Requested Date/time         26     Void and reserved. Requesting
+
+                                        date/time
+
+7    Observation Date/Time       26     Observation date/time, used as
+
+                                        calibration date/time
+
+8    Observation End Date/Time 26       Void and reserved. Observation
+
+                                        end date/time
+
+9    Collection Volume           20     Used as calibration rule.0 -
+
+                                        One-point linear; 1 ­ Two-point
+
+                                        linear; 2 ­ Multi-point linear; 3 -
+
+                                        Logistic-Log4P;        4                     -
+
+                                        Logistic-Log5P; 5 - Exponential
+
+                                        5P; 6 - Polynomial 5P; 7 ­
+
+                                        Parabola; 8 ­ Spline.
+
+10   Collector Identifier        60     Void and reserved. Collector
+
+                                        identifier
+
+11   Specimen Action Code        1      Number of calibrators
+
+12   Danger Code                 60     Calibrator No.
+
+13   Relevant Clinical Info.     300    Name of calibrator
+
+14   Specimen              Received 26  Lot No. of calibrator
+
+     Date/Time
+
+15   Specimen Source             300    Expiration date of calibrator
+
+16   Ordering Provider           120    Standard concentration of
+
+                                        calibrator
+
+17   Order Callback Phone 40            Concentration level of calibrator. H
+                                        for high; M for medium, L for low.
+     Number
+
+18   Placer Field 1              60     Response
+
+19   Placer Field 2              60     Number of calibration parameters
+
+20   Filler Field 1              60     Calibration parameter
+
+                           1-17
+No.  Field                      Length Description
+
+21   Filler Field 2             60       Void and reserved.
+
+22   Result Rpt/Status Change ­ 26       Void and reserved. Result
+                                         report/status change-date/time
+     Date/Time
+
+23   Charge to Practice         40       Void and reserved. Charge to
+
+                                         practice
+
+24   Diagnostic Serv Sect ID    10       Void and reserved. Diagnosis ID
+
+25   Result Status              1        Void and reserved. Status of result
+
+26   Parent Result              200      Void and reserved. Parent result
+
+27   Quantity/Timing            200      Void and reserved. Quantity/time
+
+28   Result Copies To           150      Void and reserved. Result copies
+
+29   Parent                     150      Void and reserved. Parent order
+
+30   Transportation Mode        20       Void and reserved. Transportation
+
+                                         mode
+
+31   Reason for Study           300      Void and reserved. Reason for
+
+                                         study
+
+32   Principal Result Interpreter 200    Void and reserved. Principal result
+
+                                         interpreter
+
+33   Assistant Result Interpreter 200    Void and reserved. Assistant result
+
+                                         interpreter
+
+34   Technician                 200      Void and reserved. Technician
+
+35   Transcriptionist           200      Void and reserved. Transcriptionist
+
+36   Scheduled Date/Time        26       Void and reserved. Scheduled
+
+                                         date/time
+
+37   Number          of   Sample 4       Void and reserved. Number of
+                                         sample containers
+     Containers
+
+38   Transport Logistics of 60           Void and reserved. Transport
+                                         logistics of collected sample
+     Collected Sample
+
+39   Collector's Comment        200      Void and reserved. Collector's
+
+                                         comment
+
+40   Transport           Arrangement 60  Void and reserved. Transport
+                                         arrangement responsibility
+     Responsibility
+
+41   Transport Arranged         30       Void and reserved. Transport
+
+                                         arranged
+
+42   Escort Required            1        Void and reserved. Escort required
+
+43   Planned Patient Transport 200       Void and reserved. Planned
+
+     Comment                             patient transport comment
+
+44   Ordering Facility Name     60       Void and reserved. Name of placer
+
+45   Ordering Facility Address  106      Void and reserved. Address of
+
+                                         placer
+
+46   Ordering Facility Phone 48          Void and reserved. Phone number
+
+                          1-18
+No.      Field                            Length Description
+                                                        of placer
+         Number
+
+47       Ordering Provider Address 106                Void and reserved. Address of
+
+                                                      placer provider
+
+Comments: The PID segment only applies to the ORU^R01 messages. The 1st, 9th,
+11th, 19th, and 37th fields are integers, the 10th field is floating number, and others
+are strings. Field 12-18 are respectively V1^V2^...Vi according to the number of
+calibrators. The different values of field 20 are separated by ^ according to the
+number of calibration parameters.
+
+Different calibration rules have various parameters:
+
+Linear (one-point, two-point and multi-point): K and R0;
+
+Logit-Log4P: K, R0, a and b;
+
+Logit-Log5P: K, R0, a, b and c;
+
+Polynomial 5P: K, R0, a, b, c and d;
+
+Parabola: R0, a and b;
+
+Spline: 4*(n-1) parameters, which are R0i, ai, bi, ci. n is number of calibrators.
+
+QC test results
+
+When QC test results are transferred (MSH-16 is 2), the applied fields include:
+
+No. Field                        Length Description
+1 Set ID ­ OBR
+                                 10       Identifies different OBR fields
+
+2 Placer                Order 22          Order number of placer, used as test No.
+
+     Number
+
+3 Filler                Order 22          Order number of filler, used as test name
+
+     Number
+
+4# Universal Service 200                  Universal           Service               ID
+
+     ID                                   (manufacturer^machine type)
+
+5 Priority                       2        Void and reserved. Priority
+
+6 Requested                      26       Void and reserved. Requesting date/time
+         Date/time
+
+7 Observation                    26       Observation date/time, used as QC
+         Date/Time
+                                          date/time
+
+8 Observation End 26                      Void and reserved. Observation end
+         Date/Time                        date/time
+
+9 Collection Volume 20                    Void and reserved.
+
+10 Collector Identifier 60                Void and reserved.
+
+                                    1-19
+No. Field               Length Description
+
+11 Specimen Action 1             Number of controls
+         Code
+
+12 Danger Code          60       Control No.
+
+13 Relevant Clinical 300         Control name
+         Info.
+
+14 Specimen             26       Lot No. of control
+         Received
+         Date/Time
+
+15 Specimen Source 300           Expiration date of control
+
+16 Ordering Provider 120         Void and reserved.
+
+17 Order Callback 40             Concentration level of control. H for high;
+         Phone Number            M for medium, L for low.
+
+18 Placer Field 1       60       Mean value (mean concentration)
+
+19 Placer Field 2       60       Standard deviation of control
+
+20 Filler Field 1       60       Test result (concentration)
+
+21 Filler Field 2       60       Void and reserved.
+
+22 Result Rpt/Status 26          Void and reserved. Result report/status
+                                 change-date/time
+Change               ­
+
+Date/Time
+
+23 Charge to Practice 40         Void and reserved. Charge to practice
+
+24 Diagnostic Serv 10            Void and reserved. Diagnosis ID
+         Sect ID
+
+25 Result Status        1        Void and reserved. Status of result
+
+26 Parent Result        200      Void and reserved. Parent result
+
+27 Quantity/Timing      200      Void and reserved. Quantity/time
+
+28 Result Copies To 150          Void and reserved. Result copies
+
+29 Parent               150      Void and reserved. Parent order
+
+30 Transportation       20       Void and reserved. Transportation mode
+
+Mode
+
+31 Reason for Study 300          Void and reserved. Reason for study
+
+32 Principal Result 200          Void and reserved. Principal result
+         Interpreter             interpreter
+
+33 Assistant Result 200          Void and reserved. Assistant result
+         Interpreter             interpreter
+
+34 Technician           200      Void and reserved. Technician
+
+35 Transcriptionist     200      Void and reserved. Transcriptionist
+
+36 Scheduled            26       Void and reserved. Scheduled date/time
+         Date/Time
+
+37 Number of Sample 4            Void and reserved. Number of sample
+
+                           1-20
+No. Field                     Length Description
+         Containers                        containers
+
+38 Transport Logistics 60              Void and reserved. Transport logistics of
+                                       collected sample
+of                 Collected
+
+Sample
+
+39 Collector's                200      Void and reserved. Collector's comment
+         Comment
+
+40 Transport                  60       Void and reserved. Transport
+
+Arrangement                            arrangement responsibility
+
+Responsibility
+
+41 Transport Arranged 30               Void and reserved. Transport arranged
+
+42 Escort Required            1        Void and reserved. Escort required
+
+43 Planned Patient 200                 Void and reserved. Planned patient
+         Transport                     transport comment
+         Comment
+
+44 Ordering Facility 60                Void and reserved. Name of placer
+         Name
+
+45 Ordering Facility 106               Void and reserved. Address of placer
+         Address
+
+46 Ordering Facility 48                Void and reserved. Phone number of
+         Phone Number                  placer
+
+47 Ordering Provider 106               Void and reserved. Address of placer
+         Address                       provider
+
+Comments: The segment only applies to the ORU^R01 messages. Fields 1, 11 and
+37 are integers, while others are strings. Fields 12-15, and 17-20 are in the format
+of V1^V2^...Vi according to the number of controls. Please note that each
+day-to-day QC result is transferred via one message. However, multiple real-time
+and daily QC results for each test are transferred via a message. QC results of
+different batches are sent respectively.
+
+OBX - Observation
+
+The OBX segment transmits the observations. If sample results are to be
+transmitted (MSH-16 is 0)--Each patient may have multiple test results, then more
+than one OBX segment will be used to transmit the results. On the analyzer, all test
+results of a patient are transmitted separately. The HL7 interface does not check
+the repeatability of the test results, which should be performed by the user system.
+
+The OBX segment of Mindray HL7 interface uses the following fields:
+
+No. Field                     Length Description
+1 Set ID ­ OBX
+                              10       Identifies different OBX segments.
+2 Value Type
+                              3        Value type, identifies the test result.
+
+                                       NM (numeric), numeric value, for
+                                       quantitative tests
+
+                                 1-21
+No. Field            Length Description
+                                  ST (string), for qualitative tests
+
+3# Observation       590   Channel number of test.
+         Identifier
+                           This field is used to match tests of results
+                           sent from the analyzer.
+
+4 Observation        20    Test name
+         Sub-ID
+
+5 Observation Value 65536 Observation value, used as test result
+                                                    (concentration)
+
+6 Units              90    Unit of test result.
+
+7 References Range 90      Reference range for test result.
+
+8 Abnormal Flags 5         Abnormity flag to indicate whether the
+                           test result is normal or not.
+
+                           L - Low
+
+                           H - High
+
+                           N - Normal
+
+9 Probability        5     Probability; for qualitative result
+
+                           (Negative-, Positive+, weak positive+-)
+
+10 Nature            of 2  Reason for abnormal test; used for
+                           reference.
+Abnormal Test
+
+11# Observe Result 1       Status of observation result, set to F-final
+         Status            results.
+
+12 Date Last Observe 26    Void and reserved. Date of last normal
+         Normal Values     observation value.
+
+13 User        Defined 20  User-defined access check, used as
+                           original result.
+Access Checks
+
+14 Date/Time of the 28     Observation date/time, used as testing
+         Observation       date/time
+
+15 Producer's ID     60    Void and reserved. Used for clinical
+
+                           department.
+
+16 Responsible       80    Responsible observer, used as tester.
+         Observer
+
+17 Observation       60    Flag of rerun result
+         Method
+                           1 ­ Rerun result
+
+                           0 ­ Not rerun result
+
+Comments: The OBX segment only applies to the ORU^R01 messages. Fields 1, 3
+and 9 are integers; fields 5 and 13 are floating numbers; others are strings. Please
+note that fields 5 and 13 are in the format of Result1 ^ Result2 ^ Result3 when
+SI(serum index) test is run. Result 1 is turbidity(L), result 2 is hemolysis(H), and
+result 3 is icterus(I).
+
+Field No.17 is used to identify rerun result.
+
+                                    1-22
+QRD - Query Definition Segment
+
+The QRD segment of Mindray HL7 interface uses the following fields:
+
+No. Field                     Length Description
+1# Query Date/Time
+                              26  Query date/time, i.e. system date/time.
+
+2# Query Format Code 1            Query format code, set to R
+                                  (record-oriented format).
+
+3# Query Priority             1   Query priority, set to D (deferred).
+
+4# Query ID                   10  Query ID, indicates different queries and
+
+                                  increases from 1.
+
+5  Deferred Response 1            Void and reserved. Deferred response type.
+
+   Type
+
+6  Deferred Response 26           Void and reserved. Deferred response
+                                  date/time.
+   Date/Time
+
+7# Quantity        Limited 10     Quantity limited request, set to RD
+         Request                  (records).
+
+8# Who Subject Filter         60  Subject filter, used as sample bar code.
+
+9# What Subject Filter        60  Subject filter. OTH for query
+
+10# What Department Data 60       Void and reserved. Department data code.
+         Code
+
+11 What Data Code Value 20        Void and reserved. Data code value
+         Qual.                    qualifier.
+
+12 Query Results Level 1          Void and reserved. Query results level. T for
+                                  Full results
+
+Comments: QRD segment may appear in QRY^Q02 and DSR^Q03 messages.
+Field 8 is bar code for real-time downloading and null for group downloading or
+downloading by sample ID; Field 4 is an integer, while others are strings.
+
+QRF - Query Filter Segment
+
+The QRF segment is used together with the QRD segment and uses the following
+fields:
+
+No. Field                   Length Description
+
+1# Where          Subject 20      Subject address filter, set to machine
+         Filter                   type.
+
+2 When Data Start 26              Data start date/time, used as start receipt
+         Date/Time                date/time.
+
+3 When Data End 26                Data end date/time, used as end receipt
+         Date/Time                date/time.
+
+4 What User Qualifier 60          Start sample ID. String
+
+5 Other QRY Subject 60            End sample ID. String. It is same as the
+
+                            1-23
+         Filter               start ID when a single sample is queried.
+
+6 Which Date/Time 12          Object type. RCT(Specimen receipt
+         Qualifier            date/time, receipt of specimen in filling
+                              ancillary (Lab))
+7 Which Date/Time 12
+         Status Qualifier     Object status. COR(Corrected only (no
+                              final with corrections))
+8 Date/Time             12
+                              Date/time selection qualifier. ALL(All
+   Selection Qualifier        values within the range)
+
+9 When                  60    Void and reserved. Time interval.
+
+   Quantity/Timing
+
+   Qualifier
+
+Comments: QRF segment only applies to QRY^Q02 and DSR^Q03 messages.
+Fields 2 and 3 are 0 o'clock and query time of the day, and used as search
+conditions. All fields are strings. Fields 4 and 5 are start sample ID and end sample
+ID for query and can be used for querying samples within an ID range. When field 4
+is blank, the query is performed by time; otherwise, it is performed by sample ID.
+
+ERR - Error Segment
+
+The ERR segment adds error description to acknowledgment message and uses
+the following fields:
+
+No. Field               Length Description
+
+1# Error Code and 80          Error code and location.
+         Location
+
+Comments: ERR segment may appear in QCK^Q02, DSR^Q03 or ACK^Q03
+message. The only field of this segment is an integer.
+
+QAK - Query Acknowledgment Segment
+
+The QAK segment includes query response information and uses the following
+fields:
+
+No. Field               Length Description
+
+1  Query Tag            32    Query tag, set to SR (sample request
+
+                              information).
+
+2  Query Response 2           Query response status:
+                              OK: Data found, no errors
+   Status
+
+                              NF: No data found, no errors
+
+                              AE: Application error
+
+                              AR: Application reject
+
+                        1-24
+Comments: QRF segment only applies to QRY^Q02 message. All fields of this
+segment are strings.
+
+DSP - Display Data Segment
+
+The DSP segment displays searched sample information and patient information
+and uses the following fields:
+
+No.        Field            Length  Description
+
+1          Set ID - DSP 4           Identifies different DSP
+
+                                    segments.
+
+2          Display Level 4          Display level.
+
+3#         Data Line        300     Data line, i.e. searched
+
+                                    contents.
+
+4          Logical Break 2          Logical break point.
+
+           Point
+
+5          Result ID        20      Result ID.
+
+Comments: The OBX segment only applies to the ORU^R01 messages. Field 1 is
+an integer, while others are strings.
+
+The 3rd field is used to display the sample request information from LIS. The order
+of the sample request information is in the following table. The Bar Code and the
+Test ID are indispensable; others can be void. When the samples include more
+than one test, the field 29th will be added with the same format.
+
+No.  Content                Type    Value
+                                    Blank
+1    Admission Number String        Blank
+                                    Maximum of 32 characters
+2    Bed Number             String  The format is YYYYMMDDHHmmSS,
+                                    such as 20061122130540.
+3    Patient Name           String  Male = M
+                                    Female = F
+4    Date of Birth          String  Other = O
+                                    O, A, B, and AB
+5    Sex                    String  Blank
+                                    Blank
+6    Blood type             String  Blank
+                                    Blank
+7    Race                   String  Consisting of sample carousel number
+
+8    Patient Address        String
+
+9    Postal Code            String
+
+10   Home Phone Number String
+
+11   Sample position        String
+
+                            1-25
+No.  Content           Type         Value
+                                    and sample tube number, such as:
+12   Sample collection String       1^30 (Position No.30 of No.1 sample
+                                    carousel)
+     time                           The format is YYYYMMDDHHmmSS,
+                                    such as 20061122130540.
+13   Not used                       Blank
+                                    Blank
+14   Not used                       Outpatient, inpatient, and other
+                                    Blank
+15   Patient type      String
+                                    Own and insurance
+16   Social        Security String  Blank
+                                    Blank
+     Number                         Blank
+
+17   Charge type       String
+
+18   Ethnic Group      String
+
+19   Birth Place       String
+
+20   Nationality       String
+
+21#  Bar Code          String
+
+22#  Sample ID         Integer
+
+23   Sending time      String       The format is YYYYMMDDHHmmSS,
+                                    such as 20061122130540.
+
+24#  STAT or not       String       It includes Y (yes), N (No) and void. N
+                                    is default.
+
+25   Not used          String       Blank
+                       String
+26#  Sample Type                    It includes serum, plasma, urine, CSF,
+                                    and other.
+
+27   Fetch Doctor      String       Blank
+
+28   Fetch Department  String       Blank
+
+29#  Test          ID^Test String   Channel No. ^ Test name ^ Unit ^
+                                    Reference range
+     Name^Unit^Normal
+
+     Range                          For                     example:
+
+                                    100^ALT^g/ml^10.1-20.5
+
+                                    Other three options except channel
+                                    No. can be left blank, such as: 100^^^.
+
+(Note: Options with "#" are compulsive.)
+The analyzer recognizes a test with its Channel Number. For the same test, if the
+channel number in the analyzer and that in the LIS server are not the same, you
+can open the ItemID.ini file in the folder where the executive file of operating
+
+                                    1-26
+software locates and configure the channel number. The test settings on the
+analyzer are the same with those on the LIS by default.
+
+DSC - Continuation Pointer Segment
+
+The DSC segment indicates whether the data message is the last one.
+
+No. Field  Length Description
+
+1  Continuation pointer 180         Continuation pointer
+
+               Comments: DSC segment only applies to DSR^Q03 message. The only field
+               of this segment is void when DSR^Q03 message responds to group query and
+               not void in other conditions. This field is an integer.
+
+               For instance, the LIS host needs to send 5 samples:
+
+               First sample: DSC|1|
+
+               Second sample: DSC|2|
+
+               Thired sample: DSC|3|
+
+               Fourth sample: DSC|4|
+
+               Fifth sample: DSC|5|
+
+1.2.5 Adding and Rerunning Tests
+
+               When a request to rerun and add some tests is proposed on the anlyzer, the LIS
+               host must send only those requested.
+
+               After finishing the added tests, the analyzer will only send their results rather than
+               those that have been finished before to the LIS host.
+
+               After reruning certain tests, the analyzer will send to the LIS host only the original
+               results and all rerun results rather than those thave been finished before.
+
+1.3 Communication Process and Message
+Example
+
+1.3.1 Example of Result Sending Message
+
+               The analyzer sends test results (of patient sample, calibrator and control) to the LIS
+               host by samples, that is, all tests of a sample are transferred via one (ORU^R01)
+               message. The LIS host must response accordingly when receiving the message.
+
+           1-27
+                     ORU^R01
+
+BS-XXX                                     LIS
+
+                     ACK^R01
+
+An ORU message may includes the following segments: MSH, PID, OBR and OBX
+(multiple OBX segments may be contained if a sample has more than one
+test).MSH, standing for message header, is included in each message and in the
+format of: (The words in brackets are for explanation and not the segments)
+
+MSH|^~\&|Mindray(Manufacturer)|            (Device      model               or
+
+blank)|||20070423101830(System                                 date/time,
+
+yyyymmddhhMMss)||ORU^R01(Message type)|1(Control ID, used to identify the
+
+message and increases from 1)|P(Fixed value, means the product)|2.3.1(Version
+
+of HL7 protocol)||||0(0 for sample test result, 1 for calibration result, 2 for QC result,
+
+void for others)||ASCII(Character set)|||
+
+Note: In all message examples, if the time segment is of 14 digits, it means
+YYYYMMDDHHMMSS; if the time segment is of 8 digits, it means YYYYMMDD.
+
+Sending Results of Patient Sample
+
+There is a patient, who has the following information:
+
+Field                            Value
+Name of patient                  Mike
+Gender                           Male
+Birth date                       01.10.85
+Sample bar code                  12345678
+Sample Type                      Serum
+Sample ID                        10
+Is sample ID or not              10
+STAT                             Yes
+Test No.                         2, 5 and 6
+Test                             TBil, ALT, AST
+Test results                     100, 98.2 and 26.4
+Unit                             umol/L, umol/L and umol/L
+
+The analyzer sends the test results to LIS via ORU^R01 message as follows:
+
+                     1-28
+<SB>MSH|^~\&|||||20120508094822||ORU^R01|1|P|2.3.1||||0||ASCII|||<CR>
+PID|1|1001||| Mike ||19851001095133|M|||||||||||||||||||||||<CR>
+OBR|1|12345678|10|^|Y|20120405193926|20120405193914|20120405193914||||||
+20120405193914|serum|||||||||||||||||||||||||||||||||<CR>
+OBX|1|NM|2|TBil|100| umol/L |-|N|||F||100|20120405194245|||0|<CR>
+OBX|2|NM|5|ALT|98.2| umol/L |-|N|||F||98.2|20120405194403|||0|<CR>
+OBX|3|NM|6|AST|26.4| umol/L |-|N|||F||26.4|||||<CR>
+<EB><CR>
+
+When receiving the message, the LIS host first judges the legality and type of the
+message and then replies accordingly. The following is a standard reply by LIS.
+
+<SB>MSH|^~\&|||||20120508094823||ACK^R01|1|P|2.3.1||||0||ASCII|||<CR>
+
+MSA|AA|1|Message accepted|||0|<CR>
+
+<EB><CR>
+
+If error is included in the ORU message, it can be returned in the MSA segment.
+For example, when an reject error of 206 occurs on the LIS host, the ACK message
+for reply is as follows:
+
+<SB>MSH|^~\&|||||20120508094823||ACK^R01|1|P|2.3.1||||0||ASCII|||<CR>
+
+MSA|AR|1|Application query error|||206|<CR>
+
+<EB><CR>
+
+Sending QC Results
+
+For example: A QC test is requested as follows.
+
+Field                                 Value
+Test No.                              7
+Test                                  AST
+Control No.                           1, 2
+Control name                          QUAL1, QUAL2
+Lot No. of control                    1111, 2222
+Expiration date of control            January 1, 2030; January 1, 2030
+Concentration level of control        Low(L), High(H)
+
+                                1-29
+Mean value (mean concentration) 45, 55
+
+Standard deviation of control  5, 5
+
+Test result (concentration)    0.130291, 0.137470
+
+The analyzer sends the test results to LIS via ORU^R01 message as follows:
+
+<SB>MSH|^~\&|||||20120508103014||ORU^R01|1|P|2.3.1||||2||ASCII|||<CR>
+
+OBR|1|7|AST|^|||20120405141255||||2|1^2|QUAL1^QUAL2|1111^2222|20300101^
+20300101||L^M|45.000000^55.000000|5.000000^5.000000|0.130291^0.137470|||||
+|||||||||||||||||||||||<CR>
+
+<EB><CR>
+
+               The LIS host replies as follows:
+               <SB>MSH|^~\&|||||20120508094823||ACK^R01|1|P|2.3.1||||2||ASCII|||<CR>
+               MSA|AA|1|Message accepted|||0|<CR>
+               <EB><CR>
+
+1.3.2 Example of Querying and Downloading Sample
+
+               The analyzer sends query request to the LIS host, which finds the relevant samples
+               and send them to the analyzer. The HL7 messages used are as follows:
+
+               The analyzer provides three ways to download samples: by sample bar code, by
+               specified sample ID range, and by test time.
+               Note: Please read the operator's manual of the analyzer for the downloading
+               instructions.
+
+Downloading Sample of Specified Bar Code
+
+               For example: To download a sample of 0019(bar code) from LIS, the analyzer
+               sends a QRY^Q02 message as follows:
+               <SB>MSH|^~\&|||||20120508104700||QRY^Q02|4|P|2.3.1||||||ASCII|||<CR>
+
+                                                 1-30
+QRD|20120508104700|R|D|1|||RD|0019|OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+<EB><CR>
+
+When receiving the message, the LIS returns the QCK^Q02 message and replies
+as follows if the sample of the bar code exists:
+<SB>MSH|^~\&|||||20120508104700||QCK^Q02|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+<EB><CR>
+
+If the sample of the bar code does not exist, the LIS replies as follows:
+<SB>MSH|^~\&|||||20120508104700||QCK^Q02|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|NF|<CR>
+<EB><CR>
+
+When the sample of the specified bar code exists on LIS, the LIS returns the
+QCK^Q02 message and sends the data message DSR^Q03, which contains the
+patient demographics, sample and test information.
+
+Field Description              Value
+Name of patient                Tommy
+Gender                         Male
+Birth date                     24.08.62
+Blood type of patient          O
+Patient type                   Outpatient
+Payment type of patient        Self-pay
+Patient ID                     1212
+Bed No.                        27
+
+                         1-31
+Sample bar code             0019
+Sample ID                   3
+Sample receiving date/time  18:35 March 1, 2007
+STAT                        No
+Sample Type                 Serum
+Sender                      Mary
+Sending department          Dept1
+Test No.                    1, 2, 5
+Name of patient             Tommy
+
+ The DSR messages are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1||1212|||<CR>
+DSP|2||27|||<CR>
+DSP|3||Tommy|||<CR>
+DSP|4||19620824000000|||<CR>
+DSP|5||M|||<CR>
+DSP|6||O|||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+
+                                      1-32
+DSP|14|||||<CR>
+DSP|15||outpatient|||<CR>
+DSP|16|||||<CR>
+DSP|17||own|||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+DSP|21||0019|||<CR>
+DSP|22||3|||<CR>
+DSP|23||20070301183500|||<CR>
+DSP|24||N|||<CR>
+DSP|25||1|||<CR>
+DSP|26||serum|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||1^^^|||<CR>
+DSP|30||2^^^|||<CR>
+DSP|31||5^^^|||<CR>
+DSC||<CR>
+<EB><CR>
+
+ No DSR message will be sent if a QCK^Q02 message has been sent indicating no
+ corresponding sample on LIS.
+ When receiving the DSR message, the analyzer replies as follows:
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+<EB><CR>
+
+                                      1-33
+Downloading Samples of Specified ID Range
+
+               To download samples with ID between 1-9 from LIS, the analyzer sends a
+               QRY^Q02 message as follows:
+               <SB>MSH|^~\&|||||20120508115221||QRY^Q02|6|P|2.3.1||||||ASCII|||<CR>
+               QRD|20120508115221|R|D|3|||RD||OTH|||T|<CR>
+               QRF||||1|9|RCT|COR|ALL||<CR>
+               <EB><CR>
+
+When receiving the message, the LIS returns the QCK^Q02 message and replies
+as follows if the samples whthin the ID range exist.
+<SB>MSH|^~\&|||||20120508115221||QCK^Q02|6|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|6|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+<EB><CR>
+
+If samples within the ID range do not exist, the LIS replies as follows:
+<SB>MSH|^~\&|||||20120508104700||QCK^Q02|6|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|6|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|NF|<CR>
+<EB><CR>
+
+When samples within the ID range exist on LIS, the LIS returns the QCK^Q02
+message and sends the data message DSR^Q03, which contains the patient
+demographics, sample and test information.
+
+Field Description      Sample 1  Sample 2
+Name of patient        Tommy     Jack
+Gender                 Male      Male
+Birth date             24.08.62  24.08.62
+Blood type of patient  O         O
+
+                       1-34
+Patient type        Outpatient    Outpatient
+
+Payment type of patient Self-pay  Self-pay
+
+Patient ID          1212          1212
+
+Bed No.             27            27
+
+Sample bar code     0019          0019
+
+Sample ID           3             3
+
+Sample        receiving 18:35 March 1, 18:35 March 1, 2007
+date/time                    2007
+
+STAT                No            No
+
+Sample Type         Serum         Serum
+
+Sender              Mary          Mary
+
+Sending department  Dept1         Dept1
+
+Test No.            1, 2, 5       1, 2, 5
+
+ The DSR messages of sample 1 are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1||1212|||<CR>
+DSP|2||27|||<CR>
+DSP|3||Tommy|||<CR>
+DSP|4||19620824000000|||<CR>
+DSP|5||M|||<CR>
+DSP|6||O|||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+
+                        1-35
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15||outpatient|||<CR>
+DSP|16|||||<CR>
+DSP|17||own|||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+DSP|21||0019|||<CR>
+DSP|22||3|||<CR>
+DSP|23||20070301183500|||<CR>
+DSP|24||N|||<CR>
+DSP|25||1|||<CR>
+DSP|26||serum|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||1^^^|||<CR>
+DSP|30||2^^^|||<CR>
+DSP|31||5^^^|||<CR>
+DSC|1|<CR>
+<EB><CR>
+
+ When receiving the DSR message, the analyzer replies as follows:
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+
+                                      1-36
+<EB><CR>
+
+ The DSR messages of sample 2 are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1||1213|||<CR>
+DSP|2||28|||<CR>
+DSP|3||Jack|||<CR>
+DSP|4||19620824000000|||<CR>
+DSP|5||M|||<CR>
+DSP|6||O|||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15||outpatient|||<CR>
+DSP|16|||||<CR>
+DSP|17||own|||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+
+                                      1-37
+             DSP|21||0020|||<CR>
+             DSP|22||4|||<CR>
+             DSP|23||20070301183500|||<CR>
+             DSP|24||N|||<CR>
+             DSP|25||1|||<CR>
+             DSP|26||serum|||<CR>
+             DSP|27|||||<CR>
+             DSP|28|||||<CR>
+             DSP|29||1^^^|||<CR>
+             DSP|30||2^^^|||<CR>
+             DSP|31||5^^^|||<CR>
+             DSC||<CR>
+             <EB><CR>
+
+               When receiving the DSR message, the analyzer replies as follows:
+             <SB>MSH|^~\&|||||20120508110131||ACK^Q03|5|P|2.3.1||||||ASCII|||<CR>
+             MSA|AA|5|Message accepted|||0|<CR>
+             ERR|0|<CR>
+             <EB><CR>
+
+Downloading Samples within Specified Time Range
+
+               The analyzer sends group query request to LIS for downloading samples within
+               specified time range.
+               For example, to download all samples from 10am to 3pm of the current day, the
+               message should be:
+               <SB>MSH|^~\&|||||20120508150259||QRY^Q02|7|P|2.3.1||||||ASCII|||<CR>
+               QRD|20120508150259|R|D|4|||RD||OTH|||T|<CR>
+               QRF||20120508100000|20120508150000|||RCT|COR|ALL||<CR>
+               <EB><CR>
+
+                                                 1-38
+Similarly to single sample query, the LIS host replies accordingly if corresponding
+samples exist. If yes, the LIS host sends all qualified samples to the analyzer after
+returning the query reply. Each sample is transferred via a DSR message, and the
+DSC segment of the last DSR message is void, indicating the end of the group
+transfer. For example: 3 qualified samples are found on LIS and are as follows:
+
+Field        Sample 1     Sample 2  Sample 3
+Description               Jessica
+                          Female    Anata
+Name of patient Jacky     12.05.83  Female
+                                    December
+Gender       Male         1587121   12, 1979
+                                    1587125
+Birth date   16.02.72     3
+                          Plasma    9
+Sample       bar 1587120  Yes       Urine
+code                      2, 3, 6   Yes
+                                    8
+Sample ID    2            Jessica
+                                    Anata
+Sample Type Serum
+
+STAT         No
+
+No. of included 1, 4
+tests
+
+Name of patient Jacky
+
+The DSR messages of sample 1 are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1|||||<CR>
+DSP|2|||||<CR>
+DSP|3||Jacky|||<CR>
+DSP|4||19720216000000|||<CR>
+DSP|5||M|||<CR>
+DSP|6||O|||<CR>
+DSP|7|||||<CR>
+
+                                    1-39
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15|||||<CR>
+DSP|16|||||<CR>
+DSP|17|||||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+DSP|21||1587120|||<CR>
+DSP|22||2|||<CR>
+DSP|23|||||<CR>
+DSP|24||N|||<CR>
+DSP|25|||||<CR>
+DSP|26||serum|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||1^^^|||<CR>
+DSP|30||4^^^|||<CR>
+DSC|1|<CR>
+<EB><CR>
+
+The analyzer sends back an ACK message to LIS every time when receiving a
+DSR message. The ACK messages for the above-mentioned DSR messages are:
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+
+                                    1-40
+ERR|0|<CR>
+<EB><CR>
+
+The DSR messages of sample 2 are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1|||||<CR>
+DSP|2|||||<CR>
+DSP|3||Jessica|||<CR>
+DSP|4||19830512000000|||<CR>
+DSP|5||F|||<CR>
+DSP|6|||||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15|||||<CR>
+DSP|16|||||<CR>
+DSP|17|||||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+
+                                    1-41
+DSP|20|||||<CR>
+DSP|21||1587121|||<CR>
+DSP|22||3|||<CR>
+DSP|23|||||<CR>
+DSP|24||Y|||<CR>
+DSP|25|||||<CR>
+DSP|26||plasma|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||2^^^|||<CR>
+DSP|30||3^^^|||<CR>
+DSP|31||4^^^|||<CR>
+DSC|2|<CR>
+<EB><CR>
+
+The analyzer sends back an ACK message to LIS every time when receiving a
+DSR message. The ACK messages for the above-mentioned DSR messages are:
+
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+
+The DSR messages of sample 3 are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1|||||<CR>
+
+                                    1-42
+DSP|2|||||<CR>
+DSP|3||Anata|||<CR>
+DSP|4||19791212000000|||<CR>
+DSP|5||F|||<CR>
+DSP|6|||||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15|||||<CR>
+DSP|16|||||<CR>
+DSP|17|||||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+DSP|21||1587125|||<CR>
+DSP|22||9|||<CR>
+DSP|23|||||<CR>
+DSP|24||Y|||<CR>
+DSP|25|||||<CR>
+DSP|26||urine|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||8^^^|||<CR>
+DSC||<CR>
+
+                                    1-43
+<EB><CR>
+
+The analyzer sends back an ACK message to LIS every time when receiving a
+DSR message. The ACK messages for the above-mentioned DSR messages are:
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|5|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|5|Message accepted|||0|<CR>
+ERR|0|<CR>
+
+1.3.3 Example of Sending Samples to LIS
+
+        DSR^Q03
+
+BS-XXX                            LIS
+
+        ACK^Q03
+
+Note: Please read the operator's manual of the analyzer for instructions of sending
+samples to LIS host.
+
+If LIS system is to set sample request information, the 15th field of MSH should be
+set to P. If DSR^Q03 is to be set, the "patient", "sample", "test information" should
+be:
+
+Field                             Value
+Name of patient                   Tommy
+Gender                            Male
+Birth date                        24.08.62
+Blood type of patient             O
+Patient type                      Outpatient
+Payment type of patient           Self-pay
+Patient ID                        1212
+Bed No.                           27
+Sample bar code                   0019
+Sample ID                         3
+Sample receiving date/time        18:35 March 1, 2007
+
+                            1-44
+STAT                      No
+Sample Type               Serum
+Sender                    Mary
+Sending department        Dept1
+Test No.                  1, 2, 5
+
+ The DSR messages are as follows:
+<SB>MSH|^~\&|||||20120508110131||DSR^Q03|4|P|2.3.1|||P|||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+QAK|SR|OK|<CR>
+QRD|20120508110131|R|D|2|||RD||OTH|||T|<CR>
+QRF||||||RCT|COR|ALL||<CR>
+DSP|1||1212|||<CR>
+DSP|2||27|||<CR>
+DSP|3||Tommy|||<CR>
+DSP|4||19620824000000|||<CR>
+DSP|5||M|||<CR>
+DSP|6||O|||<CR>
+DSP|7|||||<CR>
+DSP|8|||||<CR>
+DSP|9|||||<CR>
+DSP|10|||||<CR>
+DSP|11|||||<CR>
+DSP|12|||||<CR>
+DSP|13|||||<CR>
+DSP|14|||||<CR>
+DSP|15||outpatient|||<CR>
+DSP|16|||||<CR>
+
+                    1-45
+DSP|17||own|||<CR>
+DSP|18|||||<CR>
+DSP|19|||||<CR>
+DSP|20|||||<CR>
+DSP|21||0019|||<CR>
+DSP|22||3|||<CR>
+DSP|23||20070301183500|||<CR>
+DSP|24||N|||<CR>
+DSP|25||1|||<CR>
+DSP|26||serum|||<CR>
+DSP|27|||||<CR>
+DSP|28|||||<CR>
+DSP|29||1^^^|||<CR>
+DSP|30||2^^^|||<CR>
+DSP|31||5^^^|||<CR>
+DSC||<CR>
+<EB><CR>
+
+ When receiving the DSR message, the analyzer replies as follows:
+<SB>MSH|^~\&|||||20120508110131||ACK^Q03|4|P|2.3.1||||||ASCII|||<CR>
+MSA|AA|4|Message accepted|||0|<CR>
+ERR|0|<CR>
+<EB><CR>
+
+               NOTE
+
+                  The <CR> in the sample above is only for reading convenience and is
+                  not included in the real message.
+
+                                      1-46
+ 2 Mindray ASTM Interface
+
+2.1 Mindray ASTM Interface
+
+               ASTM interface is developed by Mindray for the Chemistry Analyzer to adapt to the
+               prevailing Laboratory Information Management System (LIS). It provides a channel
+               for the analyzer and other IP-based networks. With TCP/IP, the LIS host can
+               receive test results from chemistry analyzers, which also send patient information,
+               sample information and test results to LIS in real-time or batch mode. Therefore,
+               users can identify samples by both scanning sample bar code and downloading
+               from LIS host. All data are transmitted in format of ASTM E1394-97. This interface
+               enables bidirectional communication between the analyzer and the LIS host.
+
+2.1.1 Mindray ASTM Protocol
+
+               ASTM is standard for transferring information between the instrument and the PC
+               in clinical laboratory. It is set by American Society for Testing and Material
+               (communication protocol). The standard has multiple versions. The version
+               mentioned in the text is E1394-97, the version mentioned in the following text is
+               ASTM E1394-97, which is set in 1997.
+
+               Only portion of the messages, segments and other data defined are used for ASTM
+               interface that needs only part of these data.
+
+2.1.2 The Sending and Receiving Procedure of the
+Protocol
+
+               ASTM protocol is a uni-directional mode which means the data transmission should
+               be at only one direction at a specific time. When the instrument is sending data, the
+               PC can only receive data; when the PC is receiving data, the instrument can only
+               wait for response.
+
+               In ASTM protocol, when the sender is to send data, first it sends <ENQ> control
+               character to the target receiver; if the receiver has resources, it will respond with
+               <ACK>; otherwise, it will respond with <NAK>. If the sender receives the <ACK>,
+
+                                                  2-1
+the data frame will be sent. When the sending is completed, the <EOT>will be sent
+to the receiver which ends the whole process. The workflow is shown below:
+
+<ENQ>, <ACK>, <EOT>, <NAK> and <STX> are standard ASCII code control
+characters.
+
+Control Character  ASCII Code Hexadecimal
+<ENQ>              0x05
+<ACK>              0x06
+<EOT>              0x04
+<NAK>              0x15
+<STX>              0x02
+<LF>               0x0A
+<CR>               0x0D
+<ETB>              0x17
+<ETX>              0x03
+
+2.1.3 ASTM Protocol Communication Mode
+
+               In ASTM protocol, three status are defined: main mode, subordinate mode and
+               neutral mode. The main mode is data sending side. The subordinate mode is the
+
+                                                  2-2
+               data receiving side, receiving the data and responding with control command. The
+               neutral mode is a waiting mode, which means no data receiving and sending
+               occurs. When either of the instrument or the LIS is in main mode, the other should
+               be in subordinate mode. The two can be in neutral mode simultaneously, but either
+               side should be in one mode at a specific time.
+               When both of the instrument and the LIS system have no data to be sent, both
+               sides will be in neutral mode. If one side has data to be sent (eg, instrument needs
+               to inquire sample information from LIS system), the instrument first sends <ENQ>
+               control character to LIS system. When the sending is completed, the instrument will
+               not process any command or data, except for <ACK>, <NAK> and <ENQ>. When
+               the LIS system receives <ENQ>, it will respond with <ACK> control character. If the
+               response is completed, the LIS system will be in subordinate mode, ready to
+               receive data. At this time the instrument will be in main mode, asking for data
+               sending. When the sending is completed, the instrument will send control character
+               to the LIS system, announcing the completion of the LIS system data. The
+               instrument will be in neutral mode. After the LIS receives <EOT>, it will be in
+               neutral mode.
+
+The Communication Procedure of Sending Test Result
+
+               The following figure is a workflow to send test result.
+
+               .
+
+                                                  2-3
+               When both of the instrument and LIS system are in bidirectional communication
+               status, both sides can be sender and receiver, so both sides might have data to
+               send to each other at the same time, thus both sides will send <ENQ> to each
+               other simultaneously to enter main mode. But ASTM protocol is a unidirectional
+               protocol, the sending and receiving are simultaneously. If both sides are sending,
+               conflict might occur. The ASTM protocol has two rules to avoid the conflict.
+               When the instrument receives control command character <ENQ> after sending it,
+               it will send <NAK> waiting for the ACK from LIS.
+               When the LIS system receives <ENQ> control command character after sending it,
+               it should stop any data send trial and be ready to receive data. When it receives the
+               next <ENQ> control command character, it will return <ACK> and <NAK> to
+               confirm.
+
+The Procedure to Avoid Sending and Requesting Conflict
+
+               According to the rule, when conflict occurs, the instrument will be in main mode first.
+               Only when the data sending on the instrument side is completed and enters neutral
+               mode, can the LIS system enter main mode.
+               The following figure illustrate how to deal with conflict.
+
+                                                  2-4
+The Communication Procedure to Inquire and Download
+Sample
+
+               The procedure to inquire sample is as follows:
+
+                                                  2-5
+           Neutral Mode
+
+             Send ENQ
+
+             Response
+                 ACK
+
+Main mode               Subordinate
+                            mode
+
+             Send inquire             Inquire
+                                      Proced
+             Response
+                ACK                     ure
+
+             Send EOT                 Downlo
+                                         ad
+             Neutral Mode
+                                      procedu
+             Send ENQ                     re
+
+              Response
+                 ACK
+
+Subordinate                Main mode
+    mode
+
+Download sample
+    information
+
+             Response
+                ACK
+
+             Send EOT
+
+                                                 Neutral Mode
+
+               The workflow above is composed of two workflows: inquire procedure and
+               download procedure. When the LIS system download sample information, only the
+               downloading procedure is necessary.
+
+Adding and Rerunning Tests
+
+               When a request to rerun and add some tests is proposed on the anlyzer, the LIS
+               host must send only those requested.
+               After finishing the added tests, the analyzer will only send their results rather than
+               those that have been finished before to the LIS host.
+
+                                                  2-6
+               After reruning certain tests, the analyzer will send to the LIS host only the original
+               results and all rerun results rather than those thave been finished before.
+
+2.2 ASTM Communication
+
+               It includes the transfer of the test result and the acquisition of the sample request
+               information. The transfer of the test result is to transfer test data to external system
+               (such as LIS). The transferring modes include real time transfer and batch transfer
+               of the historical result. The acquisition of the sample request information is to
+               acquire sample request information from LIS.
+               The acquisition includes real time acquisition and batch acquisition.
+
+2.2.1 The Introduction to ASTM Protocol
+
+               The following sections introduce the common grammars in detail.
+               The ASTM protocol defines 7 message records:
+               Message Header Record
+               Patient Information Record
+               Test Order Record
+               Result Record
+               Comment Record
+               Request Information Record
+               Message Terminator Record
+
+               The sent data will include part or all of the 7 message record mentioned above.
+               For instance,
+               The ASTM protocol data frame of a complete sample test result is shown as
+               follows:
+               Message Header Record
+               Patient Information Record
+               Test Order Record
+               Result Record
+               Comment Record (optional)
+               Result Record
+               Comment Record (optional)
+               Patient Information Record
+               Test Order Record
+
+                                                  2-7
+Result Record
+Comment Record (optional)
+···
+Message Terminator Record
+
+Each ASTM message is composed of segments that end with <CR>.
+
+The record is composed of the record name of 1 character and some fields. The
+fields is composed of the components. H record defines the separator of the units.
+
+For instance,
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|20090910102501<CR>
+
+Where,
+
+The four characters following H are defined as delimiters to separate the fields,
+replicate degree and component. The following characters are used in Mindray
+ASTM interface.
+
+Character  Description
+|          Field separator
+\          Repetition separator
+^          Component separator
+&          Escape character
+
+When the field content include the characters above, transferred meaning
+characters is needed. In Mindray ASTM standard, "|" is transferred to "&|".
+
+                           2-8
+2.2.2 ASTM Data Frame Format
+Lower Layer Data Structure of ASTM Message
+
+ 1Byte          n Byte                                  1Byte     2Byte                 1Byte  1Byte
+        Message Data String
+ STX                                                    ETX       Check Sum                CR      LF
+
+0x02                                               n + 6 Byte                           0x0D 0x0A
+
+                                                            0x03
+
+                                 1Byte
+
+        1 Message Record String  CR                     ......    n Message Record String      CR
+
+                                                   0x0D
+
+1H|\^&|||Mindry^^|||||||PR|1394-97|20100719141017
+
+        1H|\^&|||Mindry^^|||||||PR|1394-97|20100719141017
+        P|1||||PName^^||20100719^^|M||||||||||||||||||||||||||
+        O|1|12^^||1^ALT^^|R|20100710213929||||||||20100710213950|serum||||||||||F|||||
+        R|1|1^ALT^^F|10.03^^^^|U/L|^|N||F|10.03^^^^||20100710215808||BS-XXX^10
+        L|1|N
+
+ASTM Data Record Format
+
+               The data sending of all ASTM data is as follows:
+               <STX> FN <FRAME> <CR> <ETB> or <ETX> <CS><CR><LF>
+               Where,
+               <STX> : Start frame header (0x02)
+               FN : Frame Number (0-7)
+               <FRAME> : Frame Data (The field separator is |)
+               <CR> : Frame data end character (0x0D)
+               <ETB> : Frame end character-when the requested data is too big, it is separated
+               by frame end character (0x17)
+               <ETX> : Frame end character (0x03)
+               <CS> : check sum-Cumulative sum of ASCII code from FN to <ETB> or <ETX>
+               (the <STX> <CS> and the end of <CR><LF> are not involve in the calculation).
+               <CR> : ASCII enter (0x0D) .
+
+                                                   2-9
+<LF> : ASCII new line (0x0A) .
+
+There are two types of ASTM protocol message frames: medium frame and end
+frame. The medium from is not a must, only used to separate the frame when the
+message is too big. The end frame is indispensable.
+
+Medium frame format: <STX> FN <FRAME> <ETB> <CS> <CR><LF>
+
+End frame format: <STX> FN <FRAME> <ETX><CS> <CR><LF>
+
+ASTM Message Record Code
+
+Record type            Record description
+H                      Header Record
+P                      Patient Record
+O                      Order Record
+R                      Result Record
+C                      Comment Record
+Q                      Request Information Record (Host query)
+L                      Terminator Record
+
+2.2.3 The Introduction of the ASTM Record Type
+
+               The following introduces the 7 records of ASTM.
+
+               The table lists all the fields used in the message record. The numbers followed by a
+               `#' symbol indicate the optional fields according to the ASTM protocol.
+
+                           NOTE
+
+                               In Mindray ASTM interface, we not omit any field in the message
+                               record. If the field has no value, it is set to void.
+
+HeaderRecord-"H"
+
+H is the header of all messages. The separator should be in the second field of the
+H message.
+
+ASTM   Field Name         Field Contents  Max Length            Field
+Field  Record Type ID     H                                     Description
+
+1#                                        1                     Record type ID
+
+                          2-10
+ASTM   Field Name          Field Contents           Max Length  Field
+Field                                                           Description
+       Delimiter           |
+2#     Definition          \                        4           Field separator
+                           ^
+3                          &                                    Repetition
+4                                                               separator
+5
+                                                                Element
+6                                                               separator
+7
+8                                                               Code change
+9                                                               separator
+10
+11     Message Control                              -           Void         and
+       ID
+12#                                                             reserved.
+
+       Password                                     -           Void         and
+
+                                                                reserved.
+
+       Sender Name or      String                   40          Instrument
+       ID
+                                                                name
+
+       Software Version String and number           20          Software Ver.:
+
+       Serial number       String and number        20          Instrument serial
+                                                                number
+
+       Sender Street                                -           Void         and
+       Address
+                                                                reserved.
+
+       Reserved field                               -           Void         and
+
+                                                                reserved.
+
+       Sender                                       -
+       Telephone
+                                                                Void         and
+       Number
+                                                                reserved.
+
+       Characteristics of                           -           Void         and
+       sender
+                                                                reserved.
+
+       Receiver ID                                  -           Void         and
+
+                                                                reserved.
+
+       Comment         or                           -
+
+       Special                                                  Void         and
+
+                                                                reserved.
+
+       Instructions
+
+                           PR (patient test result) 2
+
+                           QR (QC test result)
+
+       Processing ID       CR (calibration result)              Message type
+                           RQ (request query)
+                           QA (query response)
+
+                           SA (sample request
+                           information)
+
+                           2-11
+ASTM   Field Name         Field Contents         Max Length     Field
+Field  Version Number     String and Number                     Description
+13#    Date and Time
+                                                 12             Version number
+14
+                                                                of protocol, fixed
+
+                                                                as 1394-97
+
+                                                            14  Date and time
+                          YYYYMMDDHHMMSS                        when message
+                                                                is created
+
+Example:
+Sending message header and ending record (Instrument => Host)
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|20090910102501<CR>
+L|1|N<CR>
+
+Patient Record ­ "P"
+
+The patient information is indispensable when acquiring or downloading sample
+information or sending sample test result.
+
+ASTM   Field Name         Field Contents     Max                Field Description
+Field  Record Type ID     P                  Length             Record type ID
+
+1#                                           1
+
+2      Sequence Number                       3                  Sequence number
+
+3      Practice Assigned                     -                  Void and reserved.
+       Patient ID
+
+4      Patient ID         String  and 25                        Patient ID
+                          number
+
+5      Patient ID #3                         -                  Void and reserved.
+
+       Patient Name                                             Name of patient
+                                                                Last^First^Middle Initial
+
+6#     Last Name          String             20                 First name
+
+       First Name         String             20                 Family name
+
+       Middle Initial     String             1
+
+7      Reserved field                        -                  Void and reserved.
+
+8      Birth date         String             8                  Birth date, e.g.
+                                                                20091001
+
+                          2-12
+ASTM   Field Name           Field Contents     Max        Field Description
+Field  Age                  Number             Length     Age
+
+                                               6
+
+       Age Unit             Y = year                      Age unit
+
+                            M = Month
+
+                            W = Week
+                                                       1
+
+                            D = Days
+
+                            H = Hours
+
+                            If empty =Year
+
+                            M(Male)
+
+9      Patient Sex          F(Female)          1          Patient gender
+
+                            U(unknown)
+
+10     Patient Race         String                           Void and reserved.
+                                               20
+
+                                                             Patient race
+
+11     Patient Address      String                           Address of patient
+                                               50
+
+                                                             Sending department
+
+                            A
+
+                            B
+
+                            O                             Void and reserved.
+                                                          Blood type
+12     Reserved Field       AB                 20
+
+                            Others      are
+
+                            defined by the
+
+                            customers
+
+                            themselves
+
+13     Patient Telephone String                              Void and reserved.
+                                               13
+
+                                                             Contact information
+
+14     Attending Physician                                Void and reserved.
+       Name                                               Attending doctor
+
+       Last Name            String             20         First name
+
+       First Name           String             20         Family name
+
+       Middle Initial       String             1
+
+                            icterus                       Void and reserved.
+
+                            Hemolysis                     Sample type. When
+                                                          icterus is used, pay
+15     Special field 1      lipemia            30         attention to that it is
+                                                          case sensitive.
+                            Others defined by
+                            user
+
+16     Body Surface Area String                20         Void and reserved.
+
+                            2-13
+ASTM   Field Name              Field Contents  Max          Field Description
+Field  (M2)                    String          Length       MRN
+
+17     Patient Height                          -            Void and reserved.
+
+       Patient Height Unit                     -            Void and reserved.
+
+18     Patient Weight                          -            Void and reserved.
+
+       Patient Weight Unit                     8            Void and reserved.
+
+19     Patient Diagnosis                       50           Clinical diagnosis
+
+20     Patient Medications String                            Void and reserved.
+                                               20
+
+                                                             patient type
+
+21     Patient Diet            String                        Void and reserved.
+                                               20
+
+                                                             blood bag number
+
+22     Practice Field #1                       -            Void and reserved.
+
+23     Practice Field #2                       -            Void and reserved.
+
+24     Admission          and                  -            Void and reserved.
+
+       dischargedates
+
+25     Admission Status                        -            Void and reserved.
+
+26     Location                String                        Void and reserved.
+                                               10
+
+                                                             patient zone
+
+       Nature of alt. Diag.                                  Void and reserved.
+                                               10
+27     Code                    String
+                                                             bed
+       and Class.
+
+28     Alt. Diag. Code and                     -            Void and reserved.
+       Class
+
+29     Patient Religion                        -            Void and reserved.
+
+30     Marital Status                          -            Void and reserved.
+
+31     Isolation Status                        -            Void and reserved.
+
+32     Language                                -            Void and reserved.
+
+33     Hospital Service                        -            Void and reserved.
+
+34     Hospital Institution                    -            Void and reserved.
+
+35     Dosage Category                         -            Void and reserved.
+
+The user can enter the last name for the P-6 patient name.
+Example:
+Send patient message record (Host => Instrument)
+
+                                    2-14
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||SA|1394-97|20090910102501<CR>
+
+P|1||PATIENT111||Smith^Tom^J||19600315|M|||A||Dr.Bean|icteru|100012546|||
+Diagnosis information||0001|||||A1|002||||||||<CR>
+
+L|1|N<CR>
+
+Test Order Record ­ "O"
+
+The Test Order Record is used to transfer relevant information of test report.
+
+When transferring patient sample results (PR/SA/QA for H-12), the following fields
+are used.
+
+ASTM   Field Name           Field Contents  Max           Field Description
+Field  Record Type ID       O               Length        Record type ID
+                                                          Sequence number
+1#                                          1
+
+2      Sequence Number      Number          3
+
+       Sample ID            String       and 20           Sample ID
+                            number
+
+3      Sample Tray No.      Number          2             Sample disk No.
+
+       Sample Pos           Number          2             Sample                    cup
+
+                                                          position
+
+4      Instrument      Specimen String      29            Sample bar code
+       ID
+
+       Assay No.            String          12            Test No.
+                                                          Test
+       Assay Name           String          20            Void and reserved.
+                                                          Dilution Ratio
+5      Dilution Rate                                   4  Void and reserved.
+                            Number                        Replicate
+
+       Repeat Num                                      2
+                            Number
+
+6      Priority             R(routine)S     1             STAT
+
+                            (STAT test)
+
+       Requested Date and                   14            Sample request
+                                                          time
+7      Time (Sample program String                        20090910121532
+
+       creation date)                                     Sample collection
+                                                          time
+       Specimen Collection                  14            20090910121532
+
+8                           String                        Void and reserved.
+
+       Date and Time                                      Void and reserved.
+
+9      Collection end Time
+
+10     Collection Volume    0-99999.0       7
+
+                            2-15
+ASTM   Field Name                Field Contents  Max     Field Description
+Field                            Max = 99999.0   Length  Collection volume
+                                 String          18      Void and reserved.
+            Collected by (ID or  String          -       Collector
+11                               String          -       Void and reserved.
+                                 String          -       Void and reserved.
+            Name)                                14
+                                                 10      Void and reserved.
+12     Action Code
+                                                 20      Sending date and
+13     Danger Code                               20      time
+                                                 1       20090910121532
+            Relevant Clinical                    30
+14                                               4
+
+            Information                          20
+                                                 20
+       Date/Time Specimen
+
+15                               String
+
+       Received in the Lab.
+
+                                 serum                   Sample type, case
+                                 urine
+                                 CSF                     sensitive.  The
+                                 plasma
+            Specimen type        timed                   default sample type
+                                 other
+            (This field is not   blood                   is set to the defined
+16                               amniotic
+                                 urethral                value at the left
+            translated to local  saliva
+                                 cervical                side which varies
+            languages)           synovial
+                                                         among different
+
+                                                         products.   The
+
+                                                         customer    can
+
+                                                         modify to their
+
+                                                         needs.
+
+       Ordering Physician                                sender
+                                                         First name
+            Last Name            String                  Family name
+17                               String
+                                                         Sending
+            First Name                                   department
+                                                         Void and reserved.
+       Middle Initial            String                  Dilution factor
+                                                         Sender
+18     Physician               Phone String              First name
+       number                                            Family name
+
+19     Offline Dilution factor number
+
+       User Field #2
+
+20     Last Name                 String
+                                 String
+       First Name
+
+                                 2-16
+ASTM   Field Name               Field Contents     Max     Field Description
+Field  Middle Initial           String             Length
+                                                           Void and reserved.
+                                                   1       Void and reserved.
+                                                           Void and reserved.
+21     Laboratory field #1                         -       Void and reserved.
+                                                           Void and reserved.
+22     Laboratory field #2                         -
+                                                           Report type
+23     Date/Time       Results                     -
+                                                           Void and reserved.
+       Reported/Mod                                        Void and reserved.
+                                                           Void and reserved.
+24     Instrument Charge to                        -       Void and reserved.
+       computer system                                     Void and reserved.
+
+25     Instrument Section ID                       -
+
+                                O (request from) 1
+
+26# Report Type                 Q          (query
+
+                                response)
+
+                                F (final result)
+
+27     Reserved Field                              -
+
+       Location Specimen                           -
+
+28
+
+       Collected
+
+29     Nosocomial Infection                        -
+       flag
+
+30     Specimen Service                            -
+
+31     Specimen Institution                        -
+
+The test code of the 5th field can be recognized by both sides. When the instrument
+sends test result to the LIS system. The ReportType of the 26th field is set to F.
+When the LIS system sends inquiry to the instrument, the ReportType fo the 26th is
+set to Q. the ReportType of the 26th field is set to O, when LIS send sample
+information to the instrument.
+
+Example:
+
+Send sample request information (Host => Instrument)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||SA|1394-97|20090910102501<CR>
+
+P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||01|||||A1|002||||||||<CR
+>
+
+O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^Test3^2^1\4^Test4^2^1|R|20
+090910135300|20090910125300|||John|||||Urine|Dr.Who|Department1|1|Dr.Tom||||
+||O|||||<CR>
+
+L|1|N<CR>
+
+When transferring QC results (QR for H-12), the following fields are used.
+
+                             2-17
+ASTM   Field Name           Field Contents  Max     Field Description
+Field  Record Type ID       O               Length  Record type ID
+
+1#                                          1
+
+2      Sequence Number Number               3       Sequence number
+
+       Sample ID            String     and 20       Void and reserved.
+                            number
+
+3      Sample Tray No.      Number          2       Void and reserved.
+
+       Sample Pos           Number          2       Void and reserved.
+
+4      Instrument Specimen  String          29      Void and reserved.
+       ID
+
+       Assay No.            String          12      Code
+
+            Assay Name      String          20      Test
+5                           Number
+                                            4       Void and reserved.
+            Dilution Rate
+
+       Repeat Num           Number          2       Void and reserved.
+
+6      Priority             R(routine)S (STAT 1     Void and reserved.
+                            test)
+
+       Requested Date and                   14
+                                                          QC time
+7      Time        (Sample String                         20090910121532
+       program
+
+       creation date)
+
+       Specimen Collection                  14
+                                                          Void and reserved.
+8                           String
+
+       Date and Time
+
+9      Collection end Time                          Void and reserved.
+
+                            0-99999.0       7
+
+10     Collection Volume                            Void and reserved.
+
+                            Max = 99999.0
+
+       Collected by (ID or                  18
+                                                          Void and reserved.
+11                          String
+
+       Name)
+
+       No.                  String          10      Control No.
+
+       Name                 String          10      Control name
+
+       Batch No.            String          20      Lot No. of control
+
+12     Period of validity   String          8       Expiration date of
+
+                                                    control, e.g. 20090910
+
+       Average              Number          9       Control average
+       Concentration
+
+       Level                H for high; M for 1     Concentration level of
+                            medium, L for low.      control.
+
+                            2-18
+ASTM   Field Name            Field Contents  Max     Field Description
+Field                        Number          Length
+                                                     Standard deviation of
+       Standard Diff.                        9       control
+
+       Concentration         Number          9       Test             result
+
+                                                     (concentration)
+
+13     Danger Code           String          -       Void and reserved.
+
+       Relevant Clinical                     -
+                                                           Void and reserved.
+14                           String
+
+       Information
+
+       Date/Time Specimen                    14
+                                                           Void and reserved.
+15                           String
+
+       Received in the Lab.
+
+                             Serum           10
+
+                             Urine
+
+                             CSF
+
+                             Plasma
+
+       Specimen type         Timed
+
+       (This field is not    Other
+
+16                                                   Void and reserved.
+
+       translated to local   Blood
+
+       languages)            Amniotic
+
+                             Urethral
+
+                             Saliva
+
+                             Cervical
+
+                             Synovial
+
+       Ordering Physician                            Void and reserved.
+
+            Last Name        String          20      Void and reserved.
+17                           String
+                                             20      Void and reserved.
+            First Name
+
+       Middle Initial        String          1       Void and reserved.
+
+18     Physician        Phone String         30      Void and reserved.
+       number
+
+19     Offline Dilution factor Number        4       Void and reserved.
+
+       User Field #2                                 Void and reserved.
+
+            Last Name        String          20      Void and reserved.
+20                           String
+                                             20      Void and reserved.
+            First Name
+
+       Middle Initial        String          1       Void and reserved.
+
+21     Laboratory field #1                   -       Void and reserved.
+
+                             2-19
+ASTM      Field Name                      Field Contents      Max     Field Description
+Field     Laboratory field #2                                 Length  Void and reserved.
+
+22                                                            -
+
+23        Date/Time Results                                   -       Void and reserved.
+          Reported/Mod
+
+24        Instrument Charge to                                -       Void and reserved.
+          computer system
+
+25        Instrument Section                                  -       Void and reserved.
+          ID
+
+                                          O (request from) 1
+
+                                          Q          (query
+
+                                          response)
+
+26        Report Type                                                 Report type
+
+                                          F (final result)
+
+                                          X          (sample
+
+                                          rejected)
+
+27        Reserved Field                                      -       Void and reserved.
+
+            Location Specimen                                 -
+28                                                                          Void and reserved.
+
+            Collected
+
+29        Nosocomial Infection                                -       Void and reserved.
+          flag
+
+30        Specimen Service                                    -       Void and reserved.
+
+31        Specimen Institution                                -       Void and reserved.
+
+Example:
+
+Send QC record (Instrument => Host)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||QR|1394-97|20090910102501<CR>
+
+P|1|||||||||||||||||||||||||||||||||<CR>
+
+O|1|||||20090910121532|||||1^QC1^1111^20100910^10^L^5^10.28\2^QC2^2222^2
+0100910^20^M^10^20.48\3^QC3^3333^20100910^30^H^15^30.25||||||||||||||F|||||<C
+R>
+
+L|1|N<CR>
+
+When transferring calibration results (CR for H-12), the following fields are used.
+
+ASTM      Field Name                      Field Contents      Max     Field Description
+Field     Record Type ID                  O                   Length  Record type ID
+                                          Number
+1#                                                            1
+
+2         Sequence Number                                     3       Sequence number
+
+                                          2-20
+ASTM   Field Name           Field Contents  Max     Field Description
+Field                                       Length  Void and reserved.
+
+       Sample ID            String     and  20
+
+                            number
+
+3      Sample Tray No.      Number          2       Void and reserved.
+
+       Sample Pos           Number          2       Void and reserved.
+
+4      Instrument           String          29      Void and reserved.
+       SpecimenID
+
+       Assay No.            String          12      Code
+
+            Assay Name      String          20      Test
+5                           Number
+                                            4       Void and reserved.
+            Dilution Rate
+
+       Repeat Num           Number          2       Void and reserved.
+
+6      Priority             R (Routine), S 1        Void and reserved.
+                            (STAT)
+
+       Requested Date and                   14
+                                                          Calibration time
+7      Time         (Sample String                        20090910121532
+       program
+
+       creation date)
+
+       Specimen Collection                  14
+                                                          Void and reserved.
+8                           String
+
+       Date and Time
+
+9      Collection end Time                          Void and reserved.
+
+                            0-99999.0       7
+
+10     Collection Volume                            Void and reserved.
+
+                            Max = 99999.0
+
+       Collected by (ID or                  18
+                                                          Void and reserved.
+11                          String
+
+       Name)
+
+12     Action Code          String          -       Void and reserved.
+
+       No.                  String          10      Calibrator No.
+
+       Name                 String          10      Name of calibrator
+
+       Batch No.            String          20      Lot No. of calibrator
+
+       Period of validity   String          8       Expiration date of
+
+13                                                  calibrator 20090910
+
+       Concentration        Number          9       Standard concentration
+
+                                                    of calibrator
+
+       Level                H for high; M for 1     Concentration level of
+                            medium, L for low.      calibrator.
+
+       Response             Number          9       Calibration response
+
+                            2-21
+ASTM   Field Name            Field Contents    Max     Field Description
+Field                                          Length
+
+                             0-single  point 1
+                             linear
+
+                             1- two point
+                             linear 
+
+            Calibrate Rule   2-Multiple point          Used as calibration
+14                           linear                    rule.
+
+                             3-Logistic-Log4P
+                             4-Logistic-Log5P
+                             5-Exponential 5P
+                             6-Polynomial 5P
+                             7-Parabola 
+                             8-Spline
+
+       K                     number            9       K parameter
+
+       R0                    number            9       R0 parameter
+
+       a                     number            9       a parameter
+
+       b                     number            9       b parameter
+
+       c                     number            9       c parameter
+
+       d                     number            9       d parameter
+
+       Date/Time Specimen                      14
+                                                             Void and reserved.
+15                           String
+
+       Received in the Lab.
+
+                             Serum             10
+                                                             Void and reserved.
+                             Urine
+
+                             CSF
+
+                             Plasma
+
+       Specimen type         Timed
+
+       (This field is not    Other
+
+16
+
+       translated to local   Blood
+
+       languages)            Amniotic
+
+                             Urethral
+
+                             Saliva
+
+                             Cervical
+
+                             Synovial
+
+       Ordering Physician                              Void and reserved.
+
+17     Last Name             String            20      Void and reserved.
+
+       First Name            String            20      Void and reserved.
+
+                             2-22
+ASTM   Field Name              Field Contents      Max     Field Description
+Field  Middle Initial          String              Length  Void and reserved.
+
+                                                   1
+
+18     Physician        Phone String               30      Void and reserved.
+       number
+
+19     Offline Dilution factor number              4       Void and reserved.
+
+       User Field #2                                       Void and reserved.
+
+            Last Name          String              20      Void and reserved.
+20                             String
+                                                   20      Void and reserved.
+            First Name
+
+       Middle Initial          String              1       Void and reserved.
+
+21     Laboratory field #1                         -       Void and reserved.
+
+22     Laboratory field #2                         -       Void and reserved.
+
+23     Date/Time Results                           -       Void and reserved.
+       Reported/Mod
+
+24     Instrument Charge to                        -       Void and reserved.
+       computer system
+
+25     Instrument Section                          -       Void and reserved.
+       ID
+
+                               O (request from) 1
+
+                               Q          (query
+
+                               response)
+
+26     Report Type                                         Report type
+
+                               F (final result)
+
+                               X          (sample
+
+                               rejected)
+
+27     Reserved Field                              -       Void and reserved.
+
+            Location Specimen                      -
+28                                                               Void and reserved.
+
+            Collected
+
+29     Nosocomial Infection                        -       Void and reserved.
+       flag
+
+30     Specimen Service                            -       Void and reserved.
+
+31     Specimen Institution                        -       Void and reserved.
+
+Different calibration rules have various parameters:
+Linear (one-point, two-point and multi-point): K and R0;
+Logit-Log4P: K, R0, a and b;
+Logit-Log5P: K, R0, a, b and c;
+
+                               2-23
+Polynomial 5P: K, R0, a, b, c and d;
+
+Parabola: R0, a and b;
+
+Spline: R0i, ai, bi, ci. There are multiple groups of parameters for Spline.
+
+8^^12.5^0.58^0.9871^2.447^\^187.5^150.58^220.9871^72.447^\^82.5^98.58^4.98
+71^9.447^\^2.5^9.58^7.9871^9.447^
+
+Example:
+
+Send calibration record (Instrument => Host)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||CR|1394-97|20090910102501<CR>
+
+P|1|||||||||||||||||||||||||||||||||<CR>
+
+O|1|||||20090910121532||||||1^Cal1^1111^20100910^10^L^11\2^Cal2^2222^20100
+910^20^M^22\3^Cal3^3333^20100910^30^H^33|5^^1.25^25.1^36.48^10.78^98.41
+||||||||||||F|||||<CR>
+
+L|1|N<CR>
+
+Result Record-"R"
+
+The result record includes one test and one test result, which means one test result
+is corresponding to one result record.
+
+ASTM   Field Name              Field Contents     Max           Field Description
+Field                          R                  Lengt         Record type ID
+                                                  h
+1#     Record Identifier
+                                                  1
+
+2      Sequence Number         1-n                3             Sequence number
+
+       Assay No.#              String             12            Test No.
+
+       Assay Name              String             20            Test
+
+            Replicate number   Number                         Void and reserved.
+3#                                                2
+
+                                                              Result replicate
+
+       Result Type             I: Qualitative result            Result type
+
+                               value
+                                                             1
+
+                               F: Qualitative result
+
+                               value
+
+                               Number                           Quantitative final test
+                               (quantitative)
+            Measurement Value                     14            result. Valid only when
+4
+                                                                test type is F
+            Interpretation
+                               String             15            Qualitative final test
+                                                                result. Valid only when
+                               (Negative(-),                    test type is I
+
+                               Positive(+), Weak
+
+                               2-24
+ASTM   Field Name             Field Contents        Max
+Field                         positive(+-)etc)      Lengt Field Description
+                              turbidity (L)         h
+
+                              hemolysis (H)             Void and reserved.
+
+       SI L Value             icterus (I)           14  Serum index final
+       SI H Value             String
+       SI I Value                                       result L
+       Un5its
+                                                        Void and reserved.
+
+                                                    14  Serum index final
+
+                                                        result H
+
+                                                        Void and reserved.
+
+                                                    14  Serum index final
+
+                                                        result I
+
+                                                    12  Unit
+
+       Measurement Range      Number                12  Reference range high
+                              Number
+       Upper Limit                                  12  Reference range low
+         6
+
+       Measurement Range
+
+       Lower Limit
+
+                              L (result< reference
+                              range)
+
+7      Result Abnormal flag H (result> reference 1      Abnormal result flag
+
+                              range)
+
+                              N - Normal
+
+       Nature of Abnormality                            Qualitative reference
+
+8                             String                15  value. Valid when the
+
+       Testing                                          result type is I.
+
+9#     Result Status          F( final result)      1   Status of result
+
+                              Number                    Quantitative original
+                              (quantitative)
+       Measurement Value                            14  test result, valid only
+
+                                                        when result type is F)
+
+       Interpretation         String (Negative-,        Qualitative original test
+                              Positive+, weak 15        result, valid only when
+                              Positive +-, etc)         result type is I)
+
+10                                                      Void and reserved.
+            SI L Value
+                              turbidity (L)         14  Original result of
+
+                                                        serum index L
+
+                                                        Void and reserved.
+
+       SI H Value             hemolysis (H)         14  Original result of
+
+                                                        serum index H
+
+       SI I Value             icterus (I)           14  Void and reserved.
+
+                              2-25
+ASTM      Field Name        Field Contents          Max
+Field                                               Lengt Field Description
+                                                    h
+
+                                                                Original result of
+                                                                serum index I
+
+                            Number
+
+11        Operator Identification 1 ­ Rerun result  1   Flag of rerun result.
+
+                            0 ­ Not rerun result
+
+12        Date/time test started String             14  Test start time
+
+            Date/Time test  String                              Void and reserved.
+13                                                  14
+
+            Completed                                           Test end time
+
+          Instrument        String
+
+14        Identification    Such as LIS or 16           sender
+                            BS-XXX
+          (Sender Name)
+
+          Device ID         number                              Void and reserved.
+                                                    10
+
+                                                                Instrument ID
+
+Example:
+
+Send sample test result (Instrument => Host)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|20090910102501<CR>
+
+P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||01|||||A1|002||||||||<CR
+>
+
+O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^Test3^2^1\4^Test4^2^1|R|20
+090910135300|20090910125300|||John|||||Urine|Dr.Who|Department1|1|Dr.Tom||||
+||F|||||<CR>
+
+R|1|1^Test1^1^F|14.5^|Mg/ml||5.6^99.9|N||F|||20090910134300|20090910135300|
+BS-XXX ^123<CR>
+
+R|2|2^Test2^1^F|3.5^|Mg/ml||5.6^50.9|L||F|||20090910134300|20020316135301|B
+S-XXX ^123<CR>
+
+R|3|3^Test3^1^F|24.5^|Mg/ml||1.1^20.9|H||F|||20090910134300|20020316135302|
+BS-XXX ^123<CR>
+
+R|4|4^Test4^1^I|^Negative|Mg/ml||||Positive|F|||20090910134300|2002031613530
+3|BS-XXX ^123<CR>
+
+L|1|N<CR>
+
+                            2-26
+Note: Field No.11 is used to identify rerun result.
+
+Comment Record ­ "C"
+
+Only the result comment of Comment Record is used currently to describe the test
+result.
+
+ASTM      Field Name         Field Contents          Max    Field Description
+Field                                                Lengt  Record type ID
+                             C                       h
+1#        Record Identifier  1-n
+                             I                       1
+                             String
+2         Sequence Number    G(result comment)       3      Sequence number
+                             I (abnormal string)
+3         Comment Sourc                              1      Comment source,
+                                                            fixed value
+
+4         Comment Text                               90     Comment text
+
+5         Comment Type                               1      Comment type
+
+Example:
+
+Send comment record (Instrument => Host)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|20090910102501<CR>
+
+P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||01|||||A1|002||||||||<CR
+>
+
+O|1|1^1^1|SAMPLE123|1^Test1^2^1|R|20090910135300|20090910125300|||John
+|||||Urine|Dr.Who|Department1|1|Dr.Tom||||||F|||||<CR>
+
+R|1|1^Test1^1^F|14.5^|Mg/ml||5.6^99.9|N||F|||20090910134300|20090910135300|
+BS-XXX^123<CR>
+
+   C|1|I|Result Description|I<CR>
+
+L|1|N<CR>
+
+Request Record-"Q"
+
+               Request Record is used to send inquiring sample request info5rmation to LIS
+               server. The message includes patient ID, sample ID, time range and etc. If the LIS
+               server does not return information in specified time, the instrument can cancel
+               inquiry.
+
+                                                 2-27
+ASTM   Field Name          Field Contents   Max     Field Description
+Field  Record Identifier   Q                Length  Record type ID
+                                            1       Sequence number
+1#                                          3       Patient ID
+                                            20      Sample bar code
+2      Sequence Number 1-n                  29      Start sample ID
+                                            20      End sample ID. It is
+            Patient ID     String                   same as the start ID
+3                          String                   when a single sample
+                                                    is queried.
+            Specimen ID
+                                                    Void and reserved.
+4      Ending Range ID
+                                                    Inquire start time
+5      Universal Test Id                    20
+                                                    Inquire end time
+       Nature of Request
+                                                    Void and reserved.
+6      Time                                 -
+                                                    Void and reserved.
+       Limits
+                                                    Void and reserved.
+7      Beginning Request   String           14      Void and reserved.
+       results date/time.
+                                                    Inquire order code
+       Ending Request
+
+8      results             String           14
+
+       date/time
+
+       Requesting
+
+9      Physician                            -
+
+       name
+
+       Requesting
+
+10     Physician                            -
+
+       Telephone
+
+11     User field # 1                       -
+
+12     User field # 2                       -
+
+                            : Request
+
+       Request             sample inquire
+
+13# Information status      : Cancel        1
+
+       Codes
+
+                           current inquire
+
+If field 3 is not blank, the query is performed based on sample bar code; if field 3 is
+blank while field 4 is not blank, the query is performed based on sample ID, with
+field 5 as the end sample ID. Query can be done for certain sample ID range. If
+both fields 3 and 4 are blank, query will be performed based on time range.
+
+Example:
+
+Send and cancel request record (Instrument => Host)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||RQ|1394-97|20090910102501<CR>
+
+                                    2-28
+Q|1|^SAMPLE123||||||||||O<CR>
+L|1|N<CR>
+
+Send and cancel inquired record (Instrument => Host)
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||RQ|1394-97|20090910102501<CR>
+Q|1|^SAMPLE123||||||||||A<CR>
+L|1|N<CR>
+
+Send termination record, the unfound sample information will be indicated by I .
+ (Host => Instrument)
+
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||QA|1394-97|20090910102501<CR>
+L|1|I<CR>
+
+Return inquired sample information record (Host => Instrument)
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||SA|1394-97|20090910102501<CR>
+P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||01|||||A1|002||||||||<CR
+>
+O|1|SAMPLE123^1^1||1^Test1^2^1\2^Test2^2^1\3^Test3^2^1\4^Test4^2^1|R|200
+90910135300|20090910125300|||John|||||Urine|Dr.Who|Department1|1|Dr.Tom||||||
+Q|||||<CR>
+L|1|N<CR>
+
+Terminator Record-"L"
+
+The Terminator record will be at the end of the message indicating the termination
+of the message.
+
+ASTM   Field Name         Field Contents    Max    Field Description
+Field                                       Lengt  Record type ID
+                          C                 h
+1#     Record Identifier  1-n
+                          N=normal          1
+                          termination
+2      Sequence Number    I=No information  3      Sequence number
+
+3#     Terminator code                      1      Termination code
+
+                          2-29
+                 available from the
+                 last query.
+                 Q=Error for in
+                 last request for
+                 information
+
+Example:
+
+Send termination record (Instrument => Host)
+H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|20090910102501<CR>
+L|1|N<CR>
+
+2.3 Communication Process and Message
+Example
+
+ASTM protocol supports serial port sending ,so the information in one message
+should not be too big, otherwise the message will be sent separately. So the
+following will illustrate on respectively. The check digit <CS> will be replaced by
+check sum.
+
+2.3.1 Send Sample Test Result
+
+It will be sent as a whole: all data will be sent in one data package.
+
+INSTRUM <ENQ>
+ENT:
+
+HOST:     <ACK>
+
+INSTRUM   <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|
+ENT:      20090910102501<CR>
+
+          P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||0
+          1|||||A1|002||||||||<CR>
+
+          O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^Test3^2^
+          1\4^Test4^2^1|R|20090910135300|20090910125300|||John||||
+          |Urine|Dr.Who|Department1|1|Dr.Tom||||||F|||||<CR>
+
+          R|1|1^Test1^1^F|14.5^|Mg/ml||5.6^99.9|N||F|||2009091013430
+          0|20090910135300|BS-XXX^123<CR>
+
+          R|2|2^Test2^1^F|3.5^|Mg/ml||5.6^50.9|L||F|||20090910134300|
+          20020316135301|BS-XXX^123<CR>
+
+          R|3|3^Test3^1^F|24.5^|Mg/ml||1.1^20.9|H||F|||2009091013430
+          0|20020316135302|BS-XXX^123<CR>
+
+                 2-30
+         R|4|4^Test4^1^I|^Negative|Mg/ml||||Positive|F|||200909101343
+         00|20020316135303|BS-XXX^123<CR>
+
+         L|1|N<CR><ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM <EOT>
+ENT:
+
+It will be sent separately, split on the basis of the record.
+
+INSTRUM <ENQ>
+ENT:
+
+HOST:    <ACK>
+
+INSTRUM <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||PR|1394-97|
+
+ENT:     20090910102501<CR><ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM <STX>2P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||ict
+
+ENT:     eru||||||01|||||A1|002||||||||<CR><ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM  <STX>3O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^
+ENT:     Test3^2^1\4^Test4^2^1|R|20090910135300|20090910125300
+         |||John|||||Urine|Dr.Who|Department1|1|Dr.Tom||||||F|||||<CR><
+         ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM  <STX>4R|1|1^Test1^1^F|14.5^|Mg/ml||5.6^99.9|N||F|||200909
+ENT:     10134300|20090910135300|BS-XXX^123<CR><ETX><CS><
+         CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM  <STX>5R|2|2^Test2^1^F|3.5^|Mg/ml||5.6^50.9|L||F|||20090910
+ENT:     134300|20020316135301|BS-XXX^123<CR><ETX><CS><C
+         R><LF>
+
+HOST:    <ACK>
+
+INSTRUM  <STX>6R|3|3^Test3^1^F|24.5^|Mg/ml||1.1^20.9|H||F|||200909
+ENT:     10134300|20020316135302|BS-XXX^123<CR><ETX><CS><
+         CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM  <STX>7R|4|4^Test4^1^I|^Negative|Mg/ml||||Positive|F|||20090
+ENT:     910134300|20020316135303|BS-XXX^123<CR><ETX><CS>
+         <CR><LF>
+
+HOST:    <ACK>
+
+                2-31
+INSTRUM <STX>0L|1|N<CR><ETX><CS><CR><LF>
+ENT:
+
+HOST:    <ACK>
+
+INSTRUM <EOT>
+ENT:
+
+2.3.2 Sending Sample Inquiry
+
+It will be sent as a whole
+
+INSTRUM <ENQ>
+ENT:
+
+HOST:    <ACK>
+
+INSTRUM  <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||RQ|1394-97|
+ENT:     20090910102501<CR>
+
+         Q|1|^SAMPLE123||||||||||O<CR>
+
+         L|1|N<CR><ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM <EOT>
+ENT:
+
+It will be sent separately.
+
+INSTRUM <ENQ>
+ENT:
+
+HOST:    <ACK>
+
+INSTRUM <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||RQ|1394-97|
+
+ENT:     20090910102501<CR><ETX><CS><CR><LF>
+
+HOST:    <ACK>
+
+INSTRUM <STX>2Q|1|^SAMPLE123||||||||||O<CR><ETX><CS><CR><L
+
+ENT:     F>
+
+HOST:    <ACK>
+
+INSTRUM <STX>3L|1|N<CR><ETX><CS><CR><LF>
+ENT:
+
+HOST:    <ACK>
+
+INSTRUM <EOT>
+
+                             2-32
+ENT:
+
+2.3.3 Return inquired sample and downloaded sample
+
+               When the server transfers the sample in multiple samples, the number of P records
+               in one transfer can not exceed 10. The format of the multiple samples is as follows:
+               Message Header Record
+               Patient Information Record
+               Test Order Record
+               Patient Information Record
+               Test Order Record
+               ...
+               Message Terminator Record
+
+The following is an example of the sample transmission.
+It will be sent as a whole.
+
+HOST:  <ENQ>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||SA|1394-97|
+       20090910102501<CR>
+
+       P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||icteru||||||0
+       1|||||A1|002||||||||<CR>
+
+       O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^Test3^2^
+       1\4^Test4^2^1|R|20090910135300|20090910125300|||John||||
+       |Urine|Dr.Who|Department1|1|Dr.Tom||||||Q|||||<CR>
+
+       L|1|N<CR><ETX><CS><CR><LF>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <EOT>
+
+It will be sent separately.
+
+HOST:  <ENQ>
+
+INSTRUM <ACK>
+
+                             2-33
+ENT:
+
+HOST:  <STX>1H|\^&|||BS-XXX^01.03.07.03^123456|||||||SA|1394-97|
+       20090910102501<CR><ETX><CS><CR><LF>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <STX>2P|1||PATIENT111||Smith^Tom^J||19600315|M|||A|||ict
+       eru||||||01|||||A1|002||||||||<CR><ETX><CS><CR><LF>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <STX>3O|1|1^1^1|SAMPLE123|1^Test1^2^1\2^Test2^2^1\3^
+       Test3^2^1\4^Test4^2^1|R|20090910135300|20090910125300
+       |||John|||||Urine|Dr.Who|Department1|1|Dr.Tom||||||Q|||||<CR><
+       ETX><CS><CR><LF>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <STX>4L|1|N<CR><ETX><CS><CR><LF>
+
+INSTRUM <ACK>
+ENT:
+
+HOST:  <EOT>
+
+If LIS system returns inquired sample information, the 26th field of O record is set to Q; If
+LIS system send sample information to the chemistry analyzer, the 26th record of O
+record is set to O.
+
+               2-34
+P/N: 046-000977-00(4.0)
+

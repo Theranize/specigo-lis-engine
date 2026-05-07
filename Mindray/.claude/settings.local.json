@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check index.js)",
+      "Bash(node --check src/transport/TcpServerManager.js)",
+      "Bash(node --check src/engine/IntegrationEngine.js)",
+      "Bash(node --check src/engine/ConfigLoader.js)",
+      "Bash(node --check src/engine/ConnectionSupervisor.js)",
+      "Bash(python -c \"import json; json.load\\(open\\('package.json'\\)\\); json.load\\(open\\('config/system.config.json'\\)\\); json.load\\(open\\('config/analysers/bs230_tcpip_config.json'\\)\\); print\\('JSON_OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('config/system.config.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('config/analysers/bs230_tcpip_config.json','utf8'\\)\\); console.log\\('JSON_OK'\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(node --check src/protocol/ASTMFramer.js)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('config/analysers/bs230_tcpip_config.json','utf8'\\)\\)\")",
+      "Bash(where pdftotext *)",
+      "Bash(where pdftoppm *)",
+      "Bash(C:\\\\Program Files\\\\Git\\\\mingw64\\\\bin\\\\pdftotext.exe *)",
+      "Bash(node *)"
+    ]
+  }
+}
