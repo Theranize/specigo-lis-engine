@@ -345,9 +345,9 @@ class TcpServerManager extends EventEmitter {
     let firstChunkLogged = false;
     const noDataTimer = setTimeout(() => {
       if (!firstChunkLogged && this._peer === socket && !socket.destroyed) {
-        logger.warn(`Peer ${peerAddress} connected 10s ago but has sent ZERO bytes — analyser may be in a misconfigured state, behind a firewall stripping payloads, or expecting LIS to speak first`);
+        logger.warn(`Peer ${peerAddress} connected 3s ago but has sent ZERO bytes — analyser may be in a misconfigured state, behind a firewall stripping payloads, or expecting LIS to speak first`);
       }
-    }, 10000);
+    }, 3000);
 
     socket.on('data', (chunk) => {
       this.stats.bytesReceived += chunk.length;

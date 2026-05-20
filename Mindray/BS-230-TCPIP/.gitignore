@@ -71,3 +71,4 @@ build/
 # Windows Service installer artefacts (node-windows)
 # ---------------------------------------------------------------------------
 daemon/
+.claude/

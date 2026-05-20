@@ -526,6 +526,17 @@ class BS230Parser extends EventEmitter {
    *   [13] Test completed time (YYYYMMDDHHMMSS)  ← prefer this
    *   [14] Instrument identification (e.g. BS-XXX^serial)
    *
+   * Mindray name-only layout (observed on real on-site BS-230, 2026-05-08):
+   *
+   *   R|78|^Aspartate Aminotransferase^^F|112.51^^^^|U/L|^|N||F|112.51^^^^|0|20260507120326||Mindry^
+   *       [1] [2]                          [3]       [4] [5][6] [8] [9]      [10][11]        [13]
+   *
+   *   Same component[1]=name layout as Mindray native, BUT field positions
+   *   match Standard ASTM (range@[5], flag@[6], status@[8], datetime@[11]).
+   *   component[0] is empty; the chemistry identifier is the full English
+   *   name in component[1]. The simulator fixture and the real device do
+   *   NOT use the same offsets — both must be supported.
+   *
    * Standard ASTM E1394 / Beckman layout (older simulator fixtures):
    *
    *   R|1|^^^GLU^^|92|mg/dL|70-110|N||F|||...|20260507120000|BS-230
@@ -534,8 +545,10 @@ class BS230Parser extends EventEmitter {
    *   Channel at component[3] of field[2]; value at field[3] (no double pipe);
    *   range at field[5]; flag at field[6]; status at field[8]; instrument at [13].
    *
-   * Detection: if component[0] of the test-ID field is non-empty (Mindray),
-   * use Mindray offsets. Otherwise fall back to standard ASTM offsets.
+   * Detection priority:
+   *   1. component[0] non-empty  → mindray-channel (assay# present).
+   *   2. component[1] non-empty  → mindray-name    (real BS-230 firmware).
+   *   3. component[3] non-empty  → standard-astm   (Beckman / generic).
    *
    * @returns {object|null} ParsedResult or null if unparseable.
    */
@@ -547,33 +560,42 @@ class BS230Parser extends EventEmitter {
     // --- Universal Test ID (field[2]) ---
     const testIdField = fields[2] || '';
     const testIdParts = testIdField.split(COMPONENT_DELIMITER);
-    const mindrayChannel  = (testIdParts[0] || '').trim();
+    const mindrayAssayNo  = (testIdParts[0] || '').trim();
+    const mindrayAssayName = (testIdParts[1] || '').trim();
     const standardChannel = (testIdParts[3] || '').trim();
 
-    // Mindray populates component[0] (Assay No). Standard ASTM/Beckman
-    // populates component[3] with leading empty components (^^^GLU^^).
-    const isMindrayLayout = mindrayChannel.length > 0;
+    let layout, channelCode, assayName;
 
-    const channelCode = isMindrayLayout ? mindrayChannel : standardChannel;
-    const assayCode   = channelCode.toUpperCase();
-    const assayName   = isMindrayLayout
-      ? ((testIdParts[1] || channelCode).trim())
-      : ((testIdParts[4] || channelCode).trim());
-
-    if (!assayCode) {
-      logger.warn('R record has empty channel code in Universal Test ID field', {
+    if (mindrayAssayNo.length > 0) {
+      // Mindray simulator-style: assay# at [0], name at [1]
+      layout      = 'mindray-channel';
+      channelCode = mindrayAssayNo;
+      assayName   = mindrayAssayName || mindrayAssayNo;
+    } else if (mindrayAssayName.length > 0) {
+      // Real BS-230 firmware: full chemistry name at [1], [0] empty
+      layout      = 'mindray-name';
+      channelCode = mindrayAssayName;
+      assayName   = mindrayAssayName;
+    } else if (standardChannel.length > 0) {
+      // Standard ASTM / Beckman: code at [3], name at [4]
+      layout      = 'standard-astm';
+      channelCode = standardChannel;
+      assayName   = (testIdParts[4] || standardChannel).trim();
+    } else {
+      logger.warn('R record has empty Universal Test ID field', {
         testIdField,
         sampleId
       });
       return null;
     }
 
+    const assayCode = channelCode.toUpperCase();
+
     let rawValue, unit, referenceRange, rawFlag, resultStatus, resultDateTime, rInstrumentId;
 
-    if (isMindrayLayout) {
-      // Mindray native: value at [3] (split on ^ to drop interpretation),
-      // unit at [4], range at [6], flag at [7], status at [9],
-      // completed time at [13], instrument at [14].
+    if (layout === 'mindray-channel') {
+      // Simulator-style Mindray: shifted offsets (range@[6], flag@[7], status@[9],
+      // datetime@[13]||[12], instrument@[14]).
       rawValue       = ((fields[3] || '').split(COMPONENT_DELIMITER)[0] || '').trim();
       unit           = (fields[4]  || '').trim();
       referenceRange = (fields[6]  || '').trim();
@@ -581,6 +603,20 @@ class BS230Parser extends EventEmitter {
       resultStatus   = (fields[9]  || 'F').trim().toUpperCase();
       resultDateTime = ((fields[13] || fields[12]) || '').trim();
       rInstrumentId  = ((fields[14] || '').split(COMPONENT_DELIMITER)[0] || instrumentId || '').trim();
+    } else if (layout === 'mindray-name') {
+      // Real BS-230 firmware: standard-ASTM offsets, but value field still
+      // carries trailing ^-delimited interpretation components that must
+      // be stripped before parseFloat. Datetime falls back to test-start
+      // ([11]) when test-completed ([12]) is empty (the firmware leaves
+      // [12] blank and writes only [11]).
+      rawValue       = ((fields[3] || '').split(COMPONENT_DELIMITER)[0] || '').trim();
+      unit           = (fields[4]  || '').trim();
+      referenceRange = (fields[5]  || '').trim();
+      if (referenceRange === '^') referenceRange = '';
+      rawFlag        = (fields[6]  || '').trim().toUpperCase();
+      resultStatus   = (fields[8]  || 'F').trim().toUpperCase();
+      resultDateTime = ((fields[12] || fields[11]) || '').trim();
+      rInstrumentId  = ((fields[13] || '').split(COMPONENT_DELIMITER)[0] || instrumentId || '').trim();
     } else {
       // Standard ASTM / Beckman: value at [3], unit at [4], range at [5],
       // flag at [6], status at [8], completed at [12], instrument at [13].
@@ -622,7 +658,7 @@ class BS230Parser extends EventEmitter {
     logger.debug('R record parsed', {
       assayCode,
       sampleId,
-      layout      : isMindrayLayout ? 'mindray' : 'standard-astm',
+      layout,
       rawValue,
       numericValue,
       abnormalFlag: rawFlag,

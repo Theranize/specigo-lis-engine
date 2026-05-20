@@ -360,7 +360,7 @@ class IntegrationEngine {
     this._framer = new ASTMFramer({
       writeFn        : (buffer) => this._writeToPort(buffer),
       checksumEnabled: cfg.protocol.checksumEnabled !== false,
-      maxFrameBytes  : cfg.protocol.maxFrameBytes   || 240,
+      maxFrameBytes  : cfg.protocol.maxFrameBytes   || 4096,
       unidirectional : cfg.protocol.unidirectional === true ||
                        (cfg.lis_settings && String(cfg.lis_settings.mode || '').toLowerCase() === 'unidirectional'),
       analyzerUid    : cfg.analyzer_uid,
@@ -423,6 +423,7 @@ class IntegrationEngine {
 
     // ASTMFramer -> BS230Parser
     this._framer.on('message', (messageText) => {
+      console.debug('ASTMFramer emitted message', { length: messageText.length, preview: messageText });
       this._parser.parse(messageText);
     });
 

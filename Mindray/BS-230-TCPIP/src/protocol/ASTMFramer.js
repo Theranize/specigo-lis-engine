@@ -76,8 +76,13 @@ const CR  = 0x0D;
 const LF  = 0x0A;
 
 // Maximum allowed bytes in a single ASTM frame body (between STX and ETX/ETB).
-// ASTM E1394 specifies a maximum of 240 characters per frame.
-const MAX_FRAME_BODY_BYTES = 240;
+// ASTM E1394 specifies 240 characters per frame, but real-world Mindray
+// BS-series firmware regularly emits frames slightly over (e.g. 241-byte H
+// records) and sometimes packs multiple records per frame without ETB
+// segmentation. Strict 240-byte enforcement causes spurious NAKs on conformant
+// real devices, so we accept a generous soft cap. The upper bound only guards
+// against runaway peers (memory exhaustion).
+const MAX_FRAME_BODY_BYTES = 4096;
 
 // ---------------------------------------------------------------------------
 // Framer internal states
@@ -104,7 +109,9 @@ class ASTMFramer extends EventEmitter {
    *                                             Provided by IntegrationEngine via the transport.
    * @param {boolean}  [options.checksumEnabled] - Whether to validate ASTM checksum.
    *                                               true by default. Set false only for testing.
-   * @param {number}   [options.maxFrameBytes]   - Max frame body length. Default 240.
+   * @param {number}   [options.maxFrameBytes]   - Max frame body length. Default 4096
+   *                                                (lenient: ASTM spec is 240 but Mindray
+   *                                                BS-series firmware emits 241+ byte frames).
    * @param {boolean}  [options.unidirectional]  - When true, the framer accepts STX directly
    *                                               in IDLE state without requiring a prior ENQ.
    *                                               Per BS-230 Operator's Manual section 8.6.2,

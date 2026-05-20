@@ -21,7 +21,7 @@ const net = require('net');
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
-const DEFAULT_HOST = '69.62.77.70';
+const DEFAULT_HOST = '127.0.0.1'; //'69.62.77.70';
 const DEFAULT_PORT = 7118;
 
 function parseArg(name, fallback) {
@@ -92,7 +92,10 @@ const NOW = nowAstm();
 //   R field 2  = AssayNo^Name^Replicate^F, value at [3], unit [4],
 //                range [6], flag [7], status [9], end-time [13], instrument [14]
 function buildMessage(sample) {
+  
   const records = [];
+  records.push(`H|\\^&|||Mindry^^|||||||PR|1394-97|20260508142206\rP|8||||^^||^^|U||||||||||||||||||||||||||\rO|8|5^^|JAI |^Aspartate Aminotransferase^^\\^Creatinine (Sarcosine Oxidase Method)^^\\^Bilirubin Total (DSA Method)^^\\^Bilirubin Direct (DSA Method)^^\\^Alanine Aminotransferase^^\\^Total Protein^^\\^Albumin^^\\^Uric Acid^^\\^Urea^^\\^AST/ALT^^\\^IBIL-D ?^^|R|20260507114918|20260507114854|||||||20260507114854|serum||||||||||F|||||\rR|78|^Aspartate Aminotransferase^^F|112.509966^^^^|U/L|^|N||F|112.509966^^^^|0|20260507120326||Mindry^\rR|79|^Creatinine (Sarcosine Oxidase Method)^^F|1.042386^^^^|mg/dL|^|N||F|1.042386^^^^|0|20260507120514||Mindry^\rR|80|^Bilirubin Total (DSA Method)^^F|0.538284^^^^|mg/dL|^|N||F|0.538284^^^^|0|20260507120532||Mindry^\rR|81|^Bilirubin Direct (DSA Method)^^F|0.238511^^^^|mg/dL|^|N||F|0.238511^^^^|0|20260507120550||Mindry^\rR|82|^Alanine Aminotransferase^^F|141.151346^^^^|U/L|^|N||F|141.151346^^^^|0|20260507120438||Mindry^\rR|83|^Total Protein^^F|31.892321^^^^|g/dL|^|N||F|31.892321^^^^|0|20260507120550||Mindry^\rR|84|^Albumin^^F|45.641411^^^^|g/dL|^|N||F|45.641411^^^^|0|20260507120120||Mindry^\rR|85|^Uric Acid^^F|7.372863^^^^|mg/dL|^|N||F|7.372863^^^^|0|20260507120702||Mindry^\rR|86|^Urea^^F|15.418232^^^^|mg/dL|^|N||F|15.418232^^^^|0|20260507120232||Mindry^\rR|87|^AST/ALT^^F|0.797087^^^^||^|N||F|0.797087^^^^||||Mindry^\rR|88|^IBIL-D ?^^F|5.124340^^^^|5mol/L|^|N||F|5.124340^^^^||||Mindry^\rL|2|N\r`);
+  return records;
   records.push(`H|\\^&|||BS-230^V8.0^123456|||||||PR|1394-97|${NOW}`);
   records.push(`P|1||${sample.sampleId}||${sample.patientName}||${sample.dob}|${sample.sex}`);
   records.push(`O|1|${sample.sampleId}^1^1|${sample.sampleId}|^^|R|${NOW}|${NOW}|||||||||serum|||||||||||F|||||`);
