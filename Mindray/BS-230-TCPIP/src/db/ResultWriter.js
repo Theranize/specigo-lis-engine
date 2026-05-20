@@ -89,6 +89,32 @@ class ResultWriter {
    */
   async write(results) {
     if (!Array.isArray(results) || results.length === 0) return;
+    
+   const barcodeUid = results[0]?.barcode_uid || 'unknown';
+
+    const deleteExistingSql = `
+      DELETE FROM lis_results
+      WHERE barcode_uid = ?
+    `;
+
+    try {
+      const [result] = await this._pool.execute(deleteExistingSql, [barcodeUid]);
+
+      const deletedCount = result.affectedRows || 0;
+
+      logger.info('Existing results deleted', {
+        barcodeUid,
+        deletedCount
+      });
+
+    } catch (err) {
+      logger.error('Failed to delete existing barcode_uid records', {
+        barcodeUid,
+        error: err.message
+      });
+
+      // Continue execution — bulk insert handler will catch DB errors
+    }
 
     const placeholders = results.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
     const sql = `
